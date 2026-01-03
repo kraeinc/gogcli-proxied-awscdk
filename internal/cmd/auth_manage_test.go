@@ -10,15 +10,18 @@ import (
 
 func TestAuthManageCmd_ServicesAndOptions(t *testing.T) {
 	orig := startManageServer
+	origKeychain := ensureKeychainAccess
 	t.Cleanup(func() { startManageServer = orig })
+	t.Cleanup(func() { ensureKeychainAccess = origKeychain })
 
 	var got googleauth.ManageServerOptions
 	startManageServer = func(ctx context.Context, opts googleauth.ManageServerOptions) error {
 		got = opts
 		return nil
 	}
+	ensureKeychainAccess = func(bool) error { return nil }
 
-	if err := runKong(t, &AuthManageCmd{}, []string{"--services", "gmail,drive,gmail", "--force-consent", "--timeout", "2m"}, context.Background(), nil); err != nil {
+	if err := runKong(t, &AuthManageCmd{}, []string{"--services", "gmail,drive,gmail", "--force-consent", "--timeout", "2m"}, context.Background(), &RootFlags{NoInput: true}); err != nil {
 		t.Fatalf("execute: %v", err)
 	}
 
@@ -31,14 +34,20 @@ func TestAuthManageCmd_ServicesAndOptions(t *testing.T) {
 	if len(got.Services) != 2 {
 		t.Fatalf("expected de-duped services, got %#v", got.Services)
 	}
+	if !got.NoInput {
+		t.Fatalf("expected no-input forwarded")
+	}
 }
 
 func TestAuthManageCmd_InvalidService(t *testing.T) {
 	orig := startManageServer
+	origKeychain := ensureKeychainAccess
 	t.Cleanup(func() { startManageServer = orig })
+	t.Cleanup(func() { ensureKeychainAccess = origKeychain })
 	startManageServer = func(context.Context, googleauth.ManageServerOptions) error { return nil }
+	ensureKeychainAccess = func(bool) error { return nil }
 
-	if err := runKong(t, &AuthManageCmd{}, []string{"--services", "nope"}, context.Background(), nil); err == nil {
+	if err := runKong(t, &AuthManageCmd{}, []string{"--services", "nope"}, context.Background(), &RootFlags{}); err == nil {
 		t.Fatalf("expected error")
 	}
 }

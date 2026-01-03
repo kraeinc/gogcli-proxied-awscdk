@@ -97,7 +97,7 @@ func TestAuthTokens_ExportImportRoundtrip_JSON(t *testing.T) {
 		ensureKeychainAccess = origKeychain
 	})
 
-	ensureKeychainAccess = func() error { return nil }
+	ensureKeychainAccess = func(bool) error { return nil }
 	store := newMemSecretsStore()
 	createdAt := time.Date(2025, 12, 12, 0, 0, 0, 0, time.UTC)
 	if err := store.SetToken("A@B.COM", secrets.Token{

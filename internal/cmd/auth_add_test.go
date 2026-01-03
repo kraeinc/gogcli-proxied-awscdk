@@ -21,7 +21,7 @@ func TestAuthAddCmd_JSON(t *testing.T) {
 		ensureKeychainAccess = origKeychain
 	})
 
-	ensureKeychainAccess = func() error { return nil }
+	ensureKeychainAccess = func(bool) error { return nil }
 
 	store := newMemSecretsStore()
 	openSecretsStore = func() (secrets.Store, error) { return store, nil }
@@ -87,7 +87,9 @@ func TestAuthAddCmd_KeychainError(t *testing.T) {
 	})
 
 	// Simulate keychain locked error
-	ensureKeychainAccess = func() error {
+	var gotNoInput bool
+	ensureKeychainAccess = func(noInput bool) error {
+		gotNoInput = noInput
 		return errors.New("keychain is locked")
 	}
 
@@ -101,7 +103,7 @@ func TestAuthAddCmd_KeychainError(t *testing.T) {
 	openSecretsStore = func() (secrets.Store, error) { return store, nil }
 
 	cmd := &AuthAddCmd{Email: "test@example.com", ServicesCSV: "gmail"}
-	err := cmd.Run(context.Background())
+	err := cmd.Run(context.Background(), &RootFlags{NoInput: true})
 
 	if err == nil {
 		t.Fatal("expected error when keychain is locked")
@@ -111,5 +113,8 @@ func TestAuthAddCmd_KeychainError(t *testing.T) {
 	}
 	if authCalled {
 		t.Error("authorizeGoogle should not be called when keychain check fails")
+	}
+	if !gotNoInput {
+		t.Error("expected noInput to be forwarded to keychain access")
 	}
 }

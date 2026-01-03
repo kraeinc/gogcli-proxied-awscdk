@@ -224,7 +224,7 @@ type AuthTokensImportCmd struct {
 	InPath string `arg:"" name:"inPath" help:"Input path or '-' for stdin"`
 }
 
-func (c *AuthTokensImportCmd) Run(ctx context.Context) error {
+func (c *AuthTokensImportCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u := ui.FromContext(ctx)
 	inPath := c.InPath
 	var b []byte
@@ -266,7 +266,7 @@ func (c *AuthTokensImportCmd) Run(ctx context.Context) error {
 	}
 
 	// Pre-flight: ensure keychain is accessible before storing token
-	if keychainErr := ensureKeychainAccess(); keychainErr != nil {
+	if keychainErr := ensureKeychainAccess(flags != nil && flags.NoInput); keychainErr != nil {
 		return fmt.Errorf("keychain access: %w", keychainErr)
 	}
 
@@ -303,7 +303,7 @@ type AuthAddCmd struct {
 	ServicesCSV  string `name:"services" help:"Services to authorize: all or comma-separated gmail,calendar,drive,contacts,tasks,sheets,people" default:"all"`
 }
 
-func (c *AuthAddCmd) Run(ctx context.Context) error {
+func (c *AuthAddCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u := ui.FromContext(ctx)
 
 	var services []googleauth.Service
@@ -334,7 +334,7 @@ func (c *AuthAddCmd) Run(ctx context.Context) error {
 	}
 
 	// Pre-flight: ensure keychain is accessible before starting OAuth
-	if keychainErr := ensureKeychainAccess(); keychainErr != nil {
+	if keychainErr := ensureKeychainAccess(flags != nil && flags.NoInput); keychainErr != nil {
 		return fmt.Errorf("keychain access: %w", keychainErr)
 	}
 
@@ -489,7 +489,7 @@ type AuthManageCmd struct {
 	Timeout      time.Duration `name:"timeout" help:"Server timeout duration" default:"10m"`
 }
 
-func (c *AuthManageCmd) Run(ctx context.Context) error {
+func (c *AuthManageCmd) Run(ctx context.Context, flags *RootFlags) error {
 	var services []googleauth.Service
 	if strings.EqualFold(strings.TrimSpace(c.ServicesCSV), "") || strings.EqualFold(strings.TrimSpace(c.ServicesCSV), "all") {
 		services = googleauth.AllServices()
@@ -509,9 +509,14 @@ func (c *AuthManageCmd) Run(ctx context.Context) error {
 		}
 	}
 
+	if keychainErr := ensureKeychainAccess(flags != nil && flags.NoInput); keychainErr != nil {
+		return fmt.Errorf("keychain access: %w", keychainErr)
+	}
+
 	return startManageServer(ctx, googleauth.ManageServerOptions{
 		Timeout:      c.Timeout,
 		Services:     services,
 		ForceConsent: c.ForceConsent,
+		NoInput:      flags != nil && flags.NoInput,
 	})
 }
