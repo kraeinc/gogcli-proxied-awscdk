@@ -166,11 +166,12 @@ func (c *ContactsGetCmd) Run(ctx context.Context, flags *RootFlags) error {
 		u.Out().Printf("birthday\t%s", bd)
 	}
 	if org, title := primaryOrganization(p); org != "" || title != "" {
-		if org != "" && title != "" {
+		switch {
+		case org != "" && title != "":
 			u.Out().Printf("organization\t%s (%s)", org, title)
-		} else if org != "" {
+		case org != "":
 			u.Out().Printf("organization\t%s", org)
-		} else {
+		default:
 			u.Out().Printf("title\t%s", title)
 		}
 	}
@@ -247,7 +248,7 @@ func contactsURLs(values []string) []*people.Url {
 	return out
 }
 
-func contactsApplyPersonName(person *people.Person, givenSet bool, given, familySet bool, family string) {
+func contactsApplyPersonName(person *people.Person, givenSet bool, familySet bool, given, family string) {
 	curGiven := ""
 	curFamily := ""
 	if len(person.Names) > 0 && person.Names[0] != nil {
@@ -263,7 +264,7 @@ func contactsApplyPersonName(person *people.Person, givenSet bool, given, family
 	person.Names = []*people.Name{{GivenName: curGiven, FamilyName: curFamily}}
 }
 
-func contactsApplyPersonOrganization(person *people.Person, orgSet bool, org, titleSet bool, title string) {
+func contactsApplyPersonOrganization(person *people.Person, orgSet bool, titleSet bool, org, title string) {
 	curOrg := ""
 	curTitle := ""
 	if len(person.Organizations) > 0 && person.Organizations[0] != nil {
@@ -407,7 +408,7 @@ func (c *ContactsUpdateCmd) Run(ctx context.Context, kctx *kong.Context, flags *
 	wantCustom := flagProvided(kctx, "custom")
 
 	if wantGiven || wantFamily {
-		contactsApplyPersonName(existing, wantGiven, c.Given, wantFamily, c.Family)
+		contactsApplyPersonName(existing, wantGiven, wantFamily, c.Given, c.Family)
 		updateFields = append(updateFields, "names")
 	}
 	if wantEmail {
@@ -427,7 +428,7 @@ func (c *ContactsUpdateCmd) Run(ctx context.Context, kctx *kong.Context, flags *
 		updateFields = append(updateFields, "phoneNumbers")
 	}
 	if wantOrg || wantTitle {
-		contactsApplyPersonOrganization(existing, wantOrg, c.Organization, wantTitle, c.Title)
+		contactsApplyPersonOrganization(existing, wantOrg, wantTitle, c.Organization, c.Title)
 		updateFields = append(updateFields, "organizations")
 	}
 	if wantURL {
@@ -448,11 +449,11 @@ func (c *ContactsUpdateCmd) Run(ctx context.Context, kctx *kong.Context, flags *
 		updateFields = append(updateFields, "biographies")
 	}
 	if wantCustom {
-		userDefined, clear, parseErr := parseCustomUserDefined(c.Custom, true)
+		userDefined, clearUserDefined, parseErr := parseCustomUserDefined(c.Custom, true)
 		if parseErr != nil {
 			return usage(parseErr.Error())
 		}
-		if clear {
+		if clearUserDefined {
 			existing.UserDefined = nil
 		} else {
 			existing.UserDefined = userDefined
