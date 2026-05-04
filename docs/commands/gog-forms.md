@@ -21,6 +21,7 @@ gog forms (form) <command> [flags]
 - [gog forms delete-question](gog-forms-delete-question.md) - Delete a question by index
 - [gog forms get](gog-forms-get.md) - Get a form
 - [gog forms move-question](gog-forms-move-question.md) - Move a question to a new position
+- [gog forms raw](gog-forms-raw.md) - Dump raw Google Forms API response as JSON (Forms.Get; lossless; for scripting and LLM consumption)
 - [gog forms responses](gog-forms-responses.md) - Form responses
 - [gog forms update](gog-forms-update.md) - Update form title, description, or settings
 - [gog forms watch](gog-forms-watch.md) - Response watches (push notifications)
