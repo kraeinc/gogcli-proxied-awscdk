@@ -17,6 +17,7 @@ gog sheets (sheet) table (tables) <command>
 ## Subcommands
 
 - [gog sheets table append](gog-sheets-table-append.md) - Append rows to a table
+- [gog sheets table clear](gog-sheets-table-clear.md) - Clear table data rows
 - [gog sheets table create](gog-sheets-table-create.md) - Create a table
 - [gog sheets table delete](gog-sheets-table-delete.md) - Delete a table
 - [gog sheets table get](gog-sheets-table-get.md) - Get a table
