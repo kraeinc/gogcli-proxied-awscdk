@@ -81,6 +81,7 @@ type CLI struct {
 	Keep       KeepCmd               `cmd:"" help:"Google Keep (Workspace only)"`
 	Sheets     SheetsCmd             `cmd:"" aliases:"sheet" help:"Google Sheets"`
 	Forms      FormsCmd              `cmd:"" aliases:"form" help:"Google Forms"`
+	Meet       MeetCmd               `cmd:"" aliases:"meeting" help:"Google Meet"`
 	AppScript  AppScriptCmd          `cmd:"" name:"appscript" aliases:"script,apps-script" help:"Google Apps Script"`
 	Config     ConfigCmd             `cmd:"" help:"Manage configuration"`
 	ExitCodes  AgentExitCodesCmd     `cmd:"" name:"exit-codes" aliases:"exitcodes" help:"Print stable exit codes (alias for 'agent exit-codes')"`

@@ -374,6 +374,13 @@ Generated from `gog schema --json`.
   - [`gog logout <email> [flags]`](commands/gog-logout.md) - Remove a stored refresh token (alias for 'auth remove')
   - [`gog ls (list) [flags]`](commands/gog-ls.md) - List Drive files (alias for 'drive ls')
   - [`gog me [flags]`](commands/gog-me.md) - Show your profile (alias for 'people me')
+  - [`gog meet (meeting) <command> [flags]`](commands/gog-meet.md) - Google Meet
+    - [`gog meet (meeting) create (new) [flags]`](commands/gog-meet-create.md) - Create a meeting space
+    - [`gog meet (meeting) end (stop) <meeting-code>`](commands/gog-meet-end.md) - End active conference
+    - [`gog meet (meeting) get (info,show) <meeting-code>`](commands/gog-meet-get.md) - Get a meeting space
+    - [`gog meet (meeting) history (calls,past) <meeting-code> [flags]`](commands/gog-meet-history.md) - List past calls in a meeting
+    - [`gog meet (meeting) participants (people,attendees,who) <meeting-code> [flags]`](commands/gog-meet-participants.md) - List participants from the latest call
+    - [`gog meet (meeting) update (edit,set) <meeting-code> [flags]`](commands/gog-meet-update.md) - Update space config
   - [`gog open (browse) <target> [flags]`](commands/gog-open.md) - Print a best-effort web URL for a Google URL/ID (offline)
   - [`gog people (person) <command> [flags]`](commands/gog-people.md) - Google People
     - [`gog people (person) get (info,show) <userId>`](commands/gog-people-get.md) - Get a user profile by ID

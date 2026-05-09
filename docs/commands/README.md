@@ -2,7 +2,7 @@
 
 Every `gog` command has a generated docs page. The source of truth is the live CLI schema; run `make docs-commands` after changing command names, flags, help text, aliases, or arguments.
 
-Generated pages: 471.
+Generated pages: 478.
 
 ## Top-level Commands
 
@@ -29,6 +29,7 @@ Generated pages: 471.
 - [gog logout](gog-logout.md) - Remove a stored refresh token (alias for 'auth remove')
 - [gog ls](gog-ls.md) - List Drive files (alias for 'drive ls')
 - [gog me](gog-me.md) - Show your profile (alias for 'people me')
+- [gog meet](gog-meet.md) - Google Meet
 - [gog open](gog-open.md) - Print a best-effort web URL for a Google URL/ID (offline)
 - [gog people](gog-people.md) - Google People
 - [gog schema](gog-schema.md) - Machine-readable command/flag schema
@@ -417,6 +418,13 @@ Generated pages: 471.
   - [gog logout](gog-logout.md) - Remove a stored refresh token (alias for 'auth remove')
   - [gog ls](gog-ls.md) - List Drive files (alias for 'drive ls')
   - [gog me](gog-me.md) - Show your profile (alias for 'people me')
+  - [gog meet](gog-meet.md) - Google Meet
+    - [gog meet create](gog-meet-create.md) - Create a meeting space
+    - [gog meet end](gog-meet-end.md) - End active conference
+    - [gog meet get](gog-meet-get.md) - Get a meeting space
+    - [gog meet history](gog-meet-history.md) - List past calls in a meeting
+    - [gog meet participants](gog-meet-participants.md) - List participants from the latest call
+    - [gog meet update](gog-meet-update.md) - Update space config
   - [gog open](gog-open.md) - Print a best-effort web URL for a Google URL/ID (offline)
   - [gog people](gog-people.md) - Google People
     - [gog people get](gog-people-get.md) - Get a user profile by ID
