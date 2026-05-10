@@ -17,6 +17,7 @@ gog admin users <command>
 ## Subcommands
 
 - [gog admin users create](gog-admin-users-create.md) - Create a new user
+- [gog admin users delete](gog-admin-users-delete.md) - Delete a user account
 - [gog admin users get](gog-admin-users-get.md) - Get user details
 - [gog admin users list](gog-admin-users-list.md) - List users in a domain
 - [gog admin users suspend](gog-admin-users-suspend.md) - Suspend a user account
