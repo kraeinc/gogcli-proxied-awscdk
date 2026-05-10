@@ -10,6 +10,8 @@ fi
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$root"
 
+repo="$(gh repo view --json nameWithOwner -q .nameWithOwner)"
+
 changelog="CHANGELOG.md"
 if ! rg -q "^## ${version} - " "$changelog"; then
   echo "missing changelog section for $version" >&2
@@ -44,13 +46,13 @@ if [[ "$assets_count" -eq 0 ]]; then
   exit 2
 fi
 
-release_run_id="$(gh api repos/steipete/gogcli/actions/runs --jq ".workflow_runs[] | select(.name==\"release\") | select(.head_branch==\"v$version\") | select(.conclusion==\"success\") | .id" | head -n1)"
+release_run_id="$(gh api "repos/$repo/actions/runs" --jq ".workflow_runs[] | select(.name==\"release\") | select(.head_branch==\"v$version\") | select(.conclusion==\"success\") | .id" | head -n1)"
 if [[ -z "$release_run_id" ]]; then
   echo "release workflow not green for v$version" >&2
   exit 2
 fi
 
-ci_ok="$(gh api repos/steipete/gogcli/actions/runs --jq '.workflow_runs[] | select(.name=="ci") | select(.head_branch=="main") | .conclusion // ""' | head -n1)"
+ci_ok="$(gh api "repos/$repo/actions/runs" --jq '.workflow_runs[] | select(.name=="ci") | select(.head_branch=="main") | .conclusion // ""' | head -n1)"
 if [[ "$ci_ok" != "success" ]]; then
   echo "CI not green for main" >&2
   exit 2
