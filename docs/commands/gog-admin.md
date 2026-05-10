@@ -17,6 +17,7 @@ gog admin <command> [flags]
 ## Subcommands
 
 - [gog admin groups](gog-admin-groups.md) - Manage Workspace groups
+- [gog admin orgunits](gog-admin-orgunits.md) - Manage Workspace organizational units
 - [gog admin users](gog-admin-users.md) - Manage Workspace users
 
 ## Flags
