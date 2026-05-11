@@ -316,6 +316,8 @@ Useful global flags:
 - `--client <name>`: select a stored OAuth client
 - `--json`: JSON stdout
 - `--plain`: stable parseable text stdout
+- `--wrap-untrusted`: in JSON/raw output, wrap fetched free-text fields with
+  external untrusted-content markers for LLM/agent consumption
 - `--dry-run`: print intended actions where a command supports planning
 - `--no-input`: fail instead of prompting
 - `--force`: confirm destructive operations
@@ -329,6 +331,7 @@ For coding agents or CI, prefer:
 gog --account you@gmail.com \
   --enable-commands gmail.search,gmail.get,drive.ls,docs.cat \
   --gmail-no-send \
+  --wrap-untrusted \
   --json \
   gmail search 'newer_than:7d'
 ```
