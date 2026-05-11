@@ -127,6 +127,26 @@ func TestFormat_GoogleAPIError_DriveActivityHint(t *testing.T) {
 	}
 }
 
+func TestFormat_GoogleAPIError_AnalyticsAdminHint(t *testing.T) {
+	err := &ggoogleapi.Error{
+		Code: 403,
+		Message: "Google Analytics Admin API has not been used in project 123 before or it is disabled. " +
+			"Enable it by visiting https://console.developers.google.com/apis/api/analyticsadmin.googleapis.com/overview?project=123",
+		Errors: []ggoogleapi.ErrorItem{
+			{Reason: "accessNotConfigured"},
+		},
+	}
+	got := Format(err)
+
+	if !containsAll(got, "Analytics Admin API is not enabled", "analyticsadmin.googleapis.com", "--services analytics") {
+		t.Fatalf("unexpected: %q", got)
+	}
+
+	if strings.Contains(got, "Admin SDK API") {
+		t.Fatalf("expected Analytics Admin hint, got: %q", got)
+	}
+}
+
 func TestFormat_KongParseError_UnknownFlag(t *testing.T) {
 	// Use real Kong parser to generate a parse error
 	type TestCmd struct {

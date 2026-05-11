@@ -171,6 +171,88 @@ func TestExecute_FormsCreate_DryRun_JSON(t *testing.T) {
 	}
 }
 
+func TestExecute_FormsCreate_DescriptionBatchUpdate(t *testing.T) {
+	origNew := newFormsService
+	t.Cleanup(func() { newFormsService = origNew })
+
+	var sawCreate bool
+	var sawBatchUpdate bool
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case strings.Contains(r.URL.Path, "/forms") && r.Method == http.MethodPost && !strings.Contains(r.URL.Path, ":batchUpdate"):
+			sawCreate = true
+			var req formsapi.Form
+			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+				t.Fatalf("decode create request: %v", err)
+			}
+			if req.Info == nil || req.Info.Title != "Weekly Check-in" {
+				t.Fatalf("unexpected create request: %#v", req.Info)
+			}
+			if req.Info.Description != "" {
+				t.Fatalf("create request must not send description: %#v", req.Info)
+			}
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"formId": "form123",
+				"info": map[string]any{
+					"title": "Weekly Check-in",
+				},
+			})
+			return
+		case strings.Contains(r.URL.Path, "/forms/form123:batchUpdate") && r.Method == http.MethodPost:
+			sawBatchUpdate = true
+			var req formsapi.BatchUpdateFormRequest
+			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+				t.Fatalf("decode batch request: %v", err)
+			}
+			if len(req.Requests) != 1 || req.Requests[0].UpdateFormInfo == nil {
+				t.Fatalf("unexpected batch request: %#v", req.Requests)
+			}
+			update := req.Requests[0].UpdateFormInfo
+			if update.UpdateMask != "description" || update.Info == nil || update.Info.Description != "Friday async update" {
+				t.Fatalf("unexpected update request: %#v", update)
+			}
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{})
+			return
+		default:
+			http.NotFound(w, r)
+			return
+		}
+	}))
+	defer srv.Close()
+
+	svc, err := formsapi.NewService(context.Background(),
+		option.WithoutAuthentication(),
+		option.WithHTTPClient(srv.Client()),
+		option.WithEndpoint(srv.URL+"/"),
+	)
+	if err != nil {
+		t.Fatalf("NewService: %v", err)
+	}
+	newFormsService = func(context.Context, string) (*formsapi.Service, error) { return svc, nil }
+
+	out := captureStdout(t, func() {
+		_ = captureStderr(t, func() {
+			if err := Execute([]string{
+				"--json",
+				"--account", "a@b.com",
+				"forms", "create",
+				"--title", "Weekly Check-in",
+				"--description", "Friday async update",
+			}); err != nil {
+				t.Fatalf("Execute: %v", err)
+			}
+		})
+	})
+	if !sawCreate || !sawBatchUpdate {
+		t.Fatalf("expected create and batchUpdate; sawCreate=%v sawBatchUpdate=%v", sawCreate, sawBatchUpdate)
+	}
+	if !strings.Contains(out, `"description": "Friday async update"`) {
+		t.Fatalf("missing description in output: %s", out)
+	}
+}
+
 func TestExecute_AppScriptRun_JSON(t *testing.T) {
 	origNew := newAppScriptService
 	t.Cleanup(func() { newAppScriptService = origNew })

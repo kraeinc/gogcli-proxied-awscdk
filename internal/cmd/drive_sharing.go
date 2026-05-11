@@ -32,6 +32,7 @@ type DriveShareCmd struct {
 	Domain       string `name:"domain" help:"Domain (for --to=domain; e.g. example.com)"`
 	Role         string `name:"role" help:"Permission: reader|writer|commenter" default:"reader"`
 	Discoverable bool   `name:"discoverable" help:"Allow file discovery in search (anyone/domain only)"`
+	Notify       bool   `name:"notify" help:"Send Drive invitation email for user/domain shares"`
 }
 
 type driveShareTarget struct {
@@ -74,7 +75,7 @@ func (c *DriveShareCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	created, err := svc.Permissions.Create(fileID, perm).
 		SupportsAllDrives(true).
-		SendNotificationEmail(false).
+		SendNotificationEmail(c.Notify).
 		Fields("id, type, role, emailAddress, domain, allowFileDiscovery").
 		Context(ctx).
 		Do()

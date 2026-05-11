@@ -177,8 +177,8 @@ func (c *GmailLabelsRenameCmd) Run(ctx context.Context, flags *RootFlags) error 
 
 type GmailLabelsStyleCmd struct {
 	Label                 string `arg:"" name:"labelIdOrName" help:"User label ID or name"`
-	TextColor             string `name:"text-color" help:"Text color as #RRGGBB"`
-	BackgroundColor       string `name:"background-color" help:"Background color as #RRGGBB"`
+	TextColor             string `name:"text-color" help:"Text color from Gmail's label palette as #RRGGBB"`
+	BackgroundColor       string `name:"background-color" help:"Background color from Gmail's label palette as #RRGGBB"`
 	LabelListVisibility   string `name:"label-list-visibility" help:"Label-list visibility: labelShow|labelShowIfUnread|labelHide"`
 	MessageListVisibility string `name:"message-list-visibility" help:"Message-list visibility: show|hide"`
 }
@@ -188,19 +188,6 @@ func (c *GmailLabelsStyleCmd) Run(ctx context.Context, flags *RootFlags) error {
 	account, err := requireAccount(flags)
 	if err != nil {
 		return err
-	}
-
-	svc, err := newGmailService(ctx, account)
-	if err != nil {
-		return err
-	}
-
-	label, err := resolveMutableGmailLabel(ctx, svc, c.Label)
-	if err != nil {
-		return err
-	}
-	if label.Type == "system" {
-		return fmt.Errorf("cannot style system label %q", label.Name)
 	}
 
 	textColor, err := normalizeGmailLabelHexColor(c.TextColor, "--text-color")
@@ -219,6 +206,19 @@ func (c *GmailLabelsStyleCmd) Run(ctx context.Context, flags *RootFlags) error {
 	}
 	if validateErr := validateGmailLabelVisibility(c.MessageListVisibility, "--message-list-visibility", "show", "hide"); validateErr != nil {
 		return validateErr
+	}
+
+	svc, err := newGmailService(ctx, account)
+	if err != nil {
+		return err
+	}
+
+	label, err := resolveMutableGmailLabel(ctx, svc, c.Label)
+	if err != nil {
+		return err
+	}
+	if label.Type == "system" {
+		return fmt.Errorf("cannot style system label %q", label.Name)
 	}
 
 	patch := &gmail.Label{

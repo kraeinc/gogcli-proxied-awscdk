@@ -255,6 +255,72 @@ func TestDriveShare_CommenterRole(t *testing.T) {
 	}
 }
 
+func TestDriveShare_Notify(t *testing.T) {
+	origNew := newDriveService
+	t.Cleanup(func() { newDriveService = origNew })
+
+	var sawNotify bool
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := strings.TrimPrefix(r.URL.Path, "/drive/v3")
+		switch {
+		case r.Method == http.MethodPost && strings.HasSuffix(path, "/permissions"):
+			sawNotify = r.URL.Query().Get("sendNotificationEmail") == "true"
+			var req map[string]any
+			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+				t.Fatalf("decode permission request: %v", err)
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"id":           "perm1",
+				"type":         "user",
+				"role":         req["role"],
+				"emailAddress": req["emailAddress"],
+			})
+			return
+		case r.Method == http.MethodGet && strings.HasPrefix(path, "/files/"):
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"id":          "f1",
+				"name":        "File",
+				"webViewLink": "https://drive.example/f1",
+			})
+			return
+		default:
+			http.NotFound(w, r)
+			return
+		}
+	}))
+	defer srv.Close()
+
+	svc, err := drive.NewService(context.Background(),
+		option.WithoutAuthentication(),
+		option.WithHTTPClient(srv.Client()),
+		option.WithEndpoint(srv.URL+"/"),
+	)
+	if err != nil {
+		t.Fatalf("NewDriveService: %v", err)
+	}
+	newDriveService = func(context.Context, string) (*drive.Service, error) { return svc, nil }
+
+	u, uiErr := ui.New(ui.Options{Stdout: io.Discard, Stderr: io.Discard, Color: "never"})
+	if uiErr != nil {
+		t.Fatalf("ui.New: %v", uiErr)
+	}
+	ctx := ui.WithUI(context.Background(), u)
+
+	err = (&DriveShareCmd{
+		FileID: "f1",
+		To:     driveShareToUser,
+		Email:  "x@y.com",
+		Role:   drivePermRoleReader,
+		Notify: true,
+	}).Run(ctx, &RootFlags{Account: "a@b.com"})
+	if err != nil {
+		t.Fatalf("DriveShareCmd.Run: %v", err)
+	}
+	if !sawNotify {
+		t.Fatalf("expected sendNotificationEmail=true")
+	}
+}
+
 func TestDriveDownload_TextOutput(t *testing.T) {
 	origNew := newDriveService
 	origDownload := driveDownload

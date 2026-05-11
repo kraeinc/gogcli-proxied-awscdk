@@ -559,7 +559,7 @@ func TestGmailLabelsStyleCmd_PatchColorAndVisibility(t *testing.T) {
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 				t.Fatalf("decode patch: %v", err)
 			}
-			if body.Color.TextColor != "#112233" || body.Color.BackgroundColor != "#ffffff" {
+			if body.Color.TextColor != "#fce8b3" || body.Color.BackgroundColor != "#ffffff" {
 				t.Fatalf("unexpected color patch: %#v", body.Color)
 			}
 			if body.LabelListVisibility != "labelShowIfUnread" || body.MessageListVisibility != "hide" {
@@ -597,7 +597,7 @@ func TestGmailLabelsStyleCmd_PatchColorAndVisibility(t *testing.T) {
 		cmd := &GmailLabelsStyleCmd{}
 		err := runKong(t, cmd, []string{
 			"Custom",
-			"--text-color", "#112233",
+			"--text-color", "#fce8b3",
 			"--label-list-visibility", "labelShowIfUnread",
 			"--message-list-visibility", "hide",
 		}, ctx, &RootFlags{Account: "a@b.com"})
@@ -608,8 +608,22 @@ func TestGmailLabelsStyleCmd_PatchColorAndVisibility(t *testing.T) {
 	if !gotPatch {
 		t.Fatal("expected patch call")
 	}
-	if !strings.Contains(out, `"textColor": "#112233"`) {
+	if !strings.Contains(out, `"textColor": "#fce8b3"`) {
 		t.Fatalf("missing color in output: %q", out)
+	}
+}
+
+func TestGmailLabelsStyleCmd_RejectsOffPaletteColor(t *testing.T) {
+	u, uiErr := ui.New(ui.Options{Stdout: io.Discard, Stderr: io.Discard, Color: "never"})
+	if uiErr != nil {
+		t.Fatalf("ui.New: %v", uiErr)
+	}
+	ctx := ui.WithUI(context.Background(), u)
+
+	cmd := &GmailLabelsStyleCmd{}
+	err := runKong(t, cmd, []string{"Custom", "--background-color", "#112233"}, ctx, &RootFlags{Account: "a@b.com"})
+	if err == nil || !strings.Contains(err.Error(), "Gmail's label palette") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
@@ -636,7 +650,7 @@ func TestGmailLabelsStyleCmd_RejectsSystemLabel(t *testing.T) {
 	ctx := ui.WithUI(context.Background(), u)
 
 	cmd := &GmailLabelsStyleCmd{}
-	err := runKong(t, cmd, []string{"INBOX", "--background-color", "#112233"}, ctx, &RootFlags{Account: "a@b.com"})
+	err := runKong(t, cmd, []string{"INBOX", "--background-color", "#fce8b3"}, ctx, &RootFlags{Account: "a@b.com"})
 	if err == nil || !strings.Contains(err.Error(), "cannot style system label") {
 		t.Fatalf("unexpected error: %v", err)
 	}

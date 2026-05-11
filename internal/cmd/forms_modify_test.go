@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -252,5 +253,53 @@ func TestFormsDeleteQuestionValidationAndDryRun(t *testing.T) {
 
 	if getCalls < 3 {
 		t.Fatalf("expected form fetches for validation, got %d", getCalls)
+	}
+}
+
+func TestFormsMoveQuestionSendsZeroIndex(t *testing.T) {
+	origNew := newFormsService
+	t.Cleanup(func() { newFormsService = origNew })
+
+	var gotBatch formsapi.BatchUpdateFormRequest
+	var rawBatch string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && strings.Contains(r.URL.Path, "/v1/forms/form1:batchUpdate"):
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				t.Fatalf("read batchUpdate: %v", err)
+			}
+			rawBatch = string(body)
+			if err := json.Unmarshal(body, &gotBatch); err != nil {
+				t.Fatalf("decode batchUpdate: %v", err)
+			}
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	newFormsService = func(ctx context.Context, account string) (*formsapi.Service, error) {
+		return newFormsTestService(t, ctx, srv), nil
+	}
+
+	err := runKong(t, &FormsMoveQuestionCmd{}, []string{"form1", "1", "0"}, newQuietUIContext(t), &RootFlags{Account: "a@b.com"})
+	if err != nil {
+		t.Fatalf("runKong: %v", err)
+	}
+	if len(gotBatch.Requests) != 1 || gotBatch.Requests[0].MoveItem == nil {
+		t.Fatalf("expected moveItem request, got %#v", gotBatch.Requests)
+	}
+	move := gotBatch.Requests[0].MoveItem
+	if move.OriginalLocation == nil || move.OriginalLocation.Index != 1 {
+		t.Fatalf("unexpected original location: %#v", move.OriginalLocation)
+	}
+	if move.NewLocation == nil || move.NewLocation.Index != 0 {
+		t.Fatalf("expected new index 0, got %#v", move.NewLocation)
+	}
+	if !strings.Contains(rawBatch, `"newLocation":{"index":0}`) {
+		t.Fatalf("newLocation index 0 omitted from request: %s", rawBatch)
 	}
 }

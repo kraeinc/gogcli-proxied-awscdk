@@ -15,6 +15,8 @@ type googleAPIHint struct {
 }
 
 var googleAPIHints = []googleAPIHint{
+	{API: "analyticsadmin.googleapis.com", DisplayName: "Analytics Admin API", Service: "analytics"},
+	{API: "analyticsdata.googleapis.com", DisplayName: "Analytics Data API", Service: "analytics"},
 	{API: "admin.googleapis.com", DisplayName: "Admin SDK API", Service: "admin"},
 	{API: "driveactivity.googleapis.com", DisplayName: "Drive Activity API", Service: "driveactivity"},
 	{API: "drivelabels.googleapis.com", DisplayName: "Drive Labels API", Service: "drivelabels"},

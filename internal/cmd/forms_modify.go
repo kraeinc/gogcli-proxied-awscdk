@@ -296,7 +296,7 @@ func (c *FormsDeleteQuestionCmd) Run(ctx context.Context, flags *RootFlags) erro
 		Requests: []*formsapi.Request{
 			{
 				DeleteItem: &formsapi.DeleteItemRequest{
-					Location: &formsapi.Location{Index: int64(c.Index)},
+					Location: formLocationIndex(c.Index),
 				},
 			},
 		},
@@ -359,8 +359,8 @@ func (c *FormsMoveQuestionCmd) Run(ctx context.Context, flags *RootFlags) error 
 		Requests: []*formsapi.Request{
 			{
 				MoveItem: &formsapi.MoveItemRequest{
-					OriginalLocation: &formsapi.Location{Index: int64(c.OldIndex)},
-					NewLocation:      &formsapi.Location{Index: int64(c.NewIndex)},
+					OriginalLocation: formLocationIndex(c.OldIndex),
+					NewLocation:      formLocationIndex(c.NewIndex),
 				},
 			},
 		},
@@ -386,6 +386,13 @@ func (c *FormsMoveQuestionCmd) Run(ctx context.Context, flags *RootFlags) error 
 	u.Out().Printf("old_index\t%d", c.OldIndex)
 	u.Out().Printf("new_index\t%d", c.NewIndex)
 	return nil
+}
+
+func formLocationIndex(index int) *formsapi.Location {
+	return &formsapi.Location{
+		Index:           int64(index),
+		ForceSendFields: []string{"Index"},
+	}
 }
 
 // FormsUpdateCmd modifies form title, description, or settings.

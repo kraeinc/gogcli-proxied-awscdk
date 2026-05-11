@@ -40,7 +40,7 @@ run_drive_tests() {
   run_required "drive" "drive permissions" gog drive permissions "$file_id" --json >/dev/null
 
   local share_json perm_id perms_json
-  share_json=$(gog drive share "$file_id" --email "$EMAIL_TEST" --role reader --json)
+  share_json=$(gog drive share "$file_id" --email "$EMAIL_TEST" --role reader --notify --json)
   perms_json=$(gog drive permissions "$file_id" --json --max 50)
   perm_id=$(extract_permission_id "$perms_json" "$EMAIL_TEST")
   if [ -z "$perm_id" ]; then

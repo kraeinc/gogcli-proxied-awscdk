@@ -98,12 +98,31 @@ func (c *FormsCreateCmd) Run(ctx context.Context, flags *RootFlags) error {
 	}
 
 	req := &formsapi.Form{Info: &formsapi.Info{
-		Title:       title,
-		Description: description,
+		Title: title,
 	}}
 	form, err := svc.Forms.Create(req).Context(ctx).Do()
 	if err != nil {
 		return err
+	}
+	if description != "" {
+		formID := strings.TrimSpace(form.FormId)
+		_, err := svc.Forms.BatchUpdate(formID, &formsapi.BatchUpdateFormRequest{
+			Requests: []*formsapi.Request{
+				{
+					UpdateFormInfo: &formsapi.UpdateFormInfoRequest{
+						Info:       &formsapi.Info{Description: description},
+						UpdateMask: "description",
+					},
+				},
+			},
+		}).Context(ctx).Do()
+		if err != nil {
+			return err
+		}
+		if form.Info == nil {
+			form.Info = &formsapi.Info{}
+		}
+		form.Info.Description = description
 	}
 
 	formID := strings.TrimSpace(form.FormId)
