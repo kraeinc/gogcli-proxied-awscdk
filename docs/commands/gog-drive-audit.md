@@ -17,6 +17,7 @@ gog drive (drv) audit <command>
 ## Subcommands
 
 - [gog drive audit sharing](gog-drive-audit-sharing.md) - Find public or external Drive permissions
+- [gog drive audit user](gog-drive-audit-user.md) - Find Drive permissions granted to a user
 
 ## Flags
 
