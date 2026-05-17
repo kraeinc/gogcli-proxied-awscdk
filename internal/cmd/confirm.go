@@ -8,9 +8,8 @@ import (
 	"os"
 	"strings"
 
-	"golang.org/x/term"
-
 	"github.com/steipete/gogcli/internal/input"
+	"github.com/steipete/gogcli/internal/termutil"
 )
 
 func confirmDestructive(ctx context.Context, flags *RootFlags, action string) error {
@@ -26,7 +25,7 @@ func confirmDestructiveChecked(ctx context.Context, flags *RootFlags, action str
 	}
 
 	// Never prompt in non-interactive contexts.
-	if flags.NoInput || !term.IsTerminal(int(os.Stdin.Fd())) { //nolint:gosec // os file descriptor fits int on supported targets
+	if flags.NoInput || !termutil.IsTerminal(os.Stdin) {
 		return usagef("refusing to %s without --force (non-interactive)", action)
 	}
 

@@ -5,11 +5,10 @@ import (
 	"os"
 	"strings"
 
-	"golang.org/x/term"
-
 	"github.com/steipete/gogcli/internal/config"
 	"github.com/steipete/gogcli/internal/outfmt"
 	"github.com/steipete/gogcli/internal/secrets"
+	"github.com/steipete/gogcli/internal/termutil"
 	"github.com/steipete/gogcli/internal/ui"
 )
 
@@ -106,7 +105,7 @@ func (c *AuthKeyringCmd) Run(ctx context.Context, flags *RootFlags) error {
 		!outfmt.IsPlain(ctx) {
 		if v := strings.TrimSpace(os.Getenv(keyringPasswordEnv)); v != "" {
 			u.Err().Println("GOG_KEYRING_PASSWORD found in environment.")
-		} else if !term.IsTerminal(int(os.Stdin.Fd())) { //nolint:gosec // os file descriptor fits int on supported targets
+		} else if !termutil.IsTerminal(os.Stdin) {
 			u.Err().Linef("NOTE: file keyring backend in non-interactive context requires %s", keyringPasswordEnv)
 		} else {
 			u.Err().Linef("Hint: set %s for non-interactive use (CI/ssh)", keyringPasswordEnv)

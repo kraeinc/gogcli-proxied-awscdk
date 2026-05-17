@@ -7,10 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"golang.org/x/term"
-
 	"github.com/steipete/gogcli/internal/input"
 	"github.com/steipete/gogcli/internal/outfmt"
+	"github.com/steipete/gogcli/internal/termutil"
 	"github.com/steipete/gogcli/internal/ui"
 	"github.com/steipete/gogcli/internal/zoom"
 )
@@ -159,7 +158,7 @@ func promptDefault(ctx context.Context, prompt, value string) (string, error) {
 
 func promptSecret(prompt string) (string, error) {
 	_, _ = fmt.Fprint(os.Stderr, prompt)
-	b, err := term.ReadPassword(int(os.Stdin.Fd())) //nolint:gosec // os file descriptor fits int on supported targets
+	b, err := termutil.ReadPassword(os.Stdin)
 	_, _ = fmt.Fprintln(os.Stderr)
 	if err != nil {
 		return "", err

@@ -10,7 +10,8 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/muesli/termenv"
-	"golang.org/x/term"
+
+	"github.com/steipete/gogcli/internal/termutil"
 )
 
 const helpModeFull = "full"
@@ -284,7 +285,7 @@ func guessColumns(w io.Writer) int {
 		return 80
 	}
 
-	width, _, err := term.GetSize(int(f.Fd())) //nolint:gosec // os file descriptor fits int on supported targets
+	width, _, err := termutil.GetSize(f)
 	if err == nil && width > 0 {
 		return width
 	}

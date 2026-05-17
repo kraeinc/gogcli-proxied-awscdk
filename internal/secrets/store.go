@@ -12,9 +12,9 @@ import (
 	"time"
 
 	"github.com/99designs/keyring"
-	"golang.org/x/term"
 
 	"github.com/steipete/gogcli/internal/config"
+	"github.com/steipete/gogcli/internal/termutil"
 )
 
 type Store interface {
@@ -141,7 +141,7 @@ func fileKeyringPasswordFuncFrom(password string, passwordSet bool, isTTY bool) 
 
 func fileKeyringPasswordFunc() keyring.PromptFunc {
 	password, passwordSet := os.LookupEnv(keyringPasswordEnv)
-	return fileKeyringPasswordFuncFrom(password, passwordSet, term.IsTerminal(int(os.Stdin.Fd()))) //nolint:gosec // os file descriptor fits int on supported targets
+	return fileKeyringPasswordFuncFrom(password, passwordSet, termutil.IsTerminal(os.Stdin))
 }
 
 func normalizeKeyringBackend(value string) string {

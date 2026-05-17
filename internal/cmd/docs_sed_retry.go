@@ -3,9 +3,9 @@ package cmd
 import (
 	"context"
 	"crypto/rand"
-	"encoding/binary"
 	"errors"
 	"fmt"
+	"math/big"
 	"strings"
 	"time"
 
@@ -45,12 +45,13 @@ func retryOnQuota(ctx context.Context, fn func() error) error {
 			delay = maxDelay
 		}
 		// Add jitter: 50-100% of delay (crypto/rand for linter compliance)
-		var randBuf [8]byte
-		_, _ = rand.Read(randBuf[:])
-		halfDelay := int64(delay / 2)
+		halfDelay := delay / 2
 		var jitter time.Duration
 		if halfDelay > 0 {
-			jitter = time.Duration(binary.LittleEndian.Uint64(randBuf[:]) % uint64(halfDelay)) //nolint:gosec // jitter value is bounded
+			n, randErr := rand.Int(rand.Reader, big.NewInt(int64(halfDelay)))
+			if randErr == nil {
+				jitter = time.Duration(n.Int64())
+			}
 		}
 		delay = delay/2 + jitter
 

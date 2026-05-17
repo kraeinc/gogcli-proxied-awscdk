@@ -3,11 +3,12 @@ package googleapi
 import (
 	"bytes"
 	"context"
+	cryptorand "crypto/rand"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
-	"math/rand/v2"
+	"math/big"
 	"net/http"
 	"strconv"
 	"time"
@@ -176,9 +177,26 @@ func (t *RetryTransport) calculateBackoff(attempt int, resp *http.Response) time
 	if jitterRange <= 0 {
 		return baseDelay
 	}
-	jitter := time.Duration(rand.Int64N(int64(jitterRange))) //nolint:gosec // non-crypto jitter
+
+	jitter, err := randomDurationBelow(jitterRange)
+	if err != nil {
+		return baseDelay
+	}
 
 	return baseDelay + jitter
+}
+
+func randomDurationBelow(upperBound time.Duration) (time.Duration, error) {
+	if upperBound <= 0 {
+		return 0, nil
+	}
+
+	n, err := cryptorand.Int(cryptorand.Reader, big.NewInt(int64(upperBound)))
+	if err != nil {
+		return 0, fmt.Errorf("generate retry jitter: %w", err)
+	}
+
+	return time.Duration(n.Int64()), nil
 }
 
 func (t *RetryTransport) sleep(ctx context.Context, d time.Duration) error {
