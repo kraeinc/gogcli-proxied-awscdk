@@ -79,18 +79,42 @@ func extractTimezone(value string) string {
 	return ""
 }
 
-func buildConferenceData(withMeet bool) *calendar.ConferenceData {
-	if !withMeet {
+type conferenceChoice struct {
+	provider string
+}
+
+const (
+	conferenceProviderMeet = "meet"
+	conferenceProviderZoom = "zoom"
+)
+
+func buildConferenceData(c conferenceChoice) *calendar.ConferenceData {
+	switch c.provider {
+	case conferenceProviderMeet:
+		return &calendar.ConferenceData{
+			CreateRequest: &calendar.CreateConferenceRequest{
+				RequestId: fmt.Sprintf("gogcli-%d", time.Now().UnixNano()),
+				ConferenceSolutionKey: &calendar.ConferenceSolutionKey{
+					Type: "hangoutsMeet",
+				},
+			},
+		}
+	case conferenceProviderZoom:
+		// Zoom is attached via the event description (see zoom_description.go),
+		// not conferenceData. Google's Calendar API rejects conferenceData
+		// writes that assert conferenceSolution.key.type="addOn" from
+		// non-Workspace-Marketplace OAuth clients with 400 "Invalid conference
+		// data", and silently drops the field entirely when key.type is
+		// omitted. Description-mode preserves the join URL + meeting ID +
+		// passcode in a form that round-trips through Google's storage.
+		return nil
+	default:
 		return nil
 	}
-	return &calendar.ConferenceData{
-		CreateRequest: &calendar.CreateConferenceRequest{
-			RequestId: fmt.Sprintf("gogcli-%d", time.Now().UnixNano()),
-			ConferenceSolutionKey: &calendar.ConferenceSolutionKey{
-				Type: "hangoutsMeet",
-			},
-		},
-	}
+}
+
+func buildMeetConferenceData() *calendar.ConferenceData {
+	return buildConferenceData(conferenceChoice{provider: conferenceProviderMeet})
 }
 
 func buildRecurrence(rules []string) []string {

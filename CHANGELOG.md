@@ -2,6 +2,11 @@
 
 ## 0.17.1 - Unreleased
 
+### Added
+
+- Calendar: add --with-zoom / --regenerate-zoom / --remove-zoom that create, regenerate, and remove Zoom meetings and attach the join URL + meeting ID + passcode to the Calendar event description. Google's Calendar API rejects conferenceData writes asserting `conferenceSolution.key.type="addOn"` from non-Workspace-Marketplace OAuth clients, so the description-mode integration is the path that round-trips through Google's storage; trade-off is no native "Join with Zoom" conference card. (#589, #590) — thanks @alexisperumal and @mvanhorn.
+- Auth: add gog zoom auth setup / doctor for Zoom S2S OAuth credential storage. (#590) — thanks @mvanhorn.
+
 ### Fixed
 
 - CLI: harden backup writes, config/credentials atomic saves, keyring write verification, line input buffering, disabled-API hints, JSON transform number handling, and untrusted-content wrapping after ClawPatch review.
