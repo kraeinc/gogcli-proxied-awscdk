@@ -471,6 +471,82 @@ func TestCalendarUpdateCmd_RemoveZoom(t *testing.T) {
 	}
 }
 
+func TestCalendarUpdateCmd_RemoveZoomClearsDescriptionOnlyBlock(t *testing.T) {
+	origNew := newCalendarService
+	t.Cleanup(func() { newCalendarService = origNew })
+	zoomClient := &fakeZoomCalendarClient{}
+	withFakeZoomClient(t, zoomClient)
+	var descriptionPresent bool
+	var description string
+	srv := httptest.NewServer(withPrimaryCalendar(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := strings.TrimPrefix(r.URL.Path, "/calendar/v3")
+		switch {
+		case r.Method == http.MethodGet && path == "/calendars/cal@example.com/events/ev":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"id": "ev",
+				"description": buildZoomDescriptionBlock(&zoom.Meeting{
+					ID:       999,
+					JoinURL:  "https://example.zoom.us/j/999?pwd=secret",
+					Password: "secret",
+				}),
+			})
+		case r.Method == http.MethodPatch && path == "/calendars/cal@example.com/events/ev":
+			var body map[string]any
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			rawDescription, ok := body["description"]
+			descriptionPresent = ok
+			if ok {
+				description, _ = rawDescription.(string)
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{"id": "ev"})
+		default:
+			http.NotFound(w, r)
+		}
+	})))
+	defer srv.Close()
+	newCalendarService = func(ctx context.Context, _ string) (*calendar.Service, error) {
+		return newCalendarServiceFromZoomTestServer(t, ctx, srv), nil
+	}
+	ctx := newCalendarJSONOutputContext(t, os.Stdout, os.Stderr)
+	if err := runKong(t, &CalendarUpdateCmd{}, []string{"cal@example.com", "ev", "--remove-zoom"}, ctx, &RootFlags{Account: "a@b.com"}); err != nil {
+		t.Fatalf("runKong: %v", err)
+	}
+	if !descriptionPresent || description != "" || len(zoomClient.deleted) != 1 || zoomClient.deleted[0] != "999" {
+		t.Fatalf("expected empty description/delete, descriptionPresent=%v description=%q deleted=%v", descriptionPresent, description, zoomClient.deleted)
+	}
+}
+
+func TestDescriptionForPatchHonorsExplicitEmptyDescription(t *testing.T) {
+	existing := &calendar.Event{Description: "Agenda\n\n" + buildZoomDescriptionBlock(&zoom.Meeting{
+		ID:      999,
+		JoinURL: "https://example.zoom.us/j/999",
+	})}
+	patch := &calendar.Event{
+		Description:     "",
+		ForceSendFields: []string{"Description"},
+	}
+
+	if got := descriptionForPatch(existing, patch); got != "" {
+		t.Fatalf("descriptionForPatch = %q, want explicit empty description", got)
+	}
+}
+
+func TestMergeEventPatchHonorsExplicitEmptyDescription(t *testing.T) {
+	existing := &calendar.Event{Summary: "Planning", Description: "private agenda"}
+	patch := &calendar.Event{
+		Description:     "",
+		ForceSendFields: []string{"Description"},
+	}
+
+	got := mergeEventPatch(existing, patch)
+	if got.Description != "" {
+		t.Fatalf("mergeEventPatch description = %q, want explicit empty description", got.Description)
+	}
+	if got.Summary != "Planning" {
+		t.Fatalf("mergeEventPatch summary = %q, want existing summary", got.Summary)
+	}
+}
+
 func TestCalendarUpdateCmd_WithZoomOnExistingMeetEventRejects(t *testing.T) {
 	origNew := newCalendarService
 	t.Cleanup(func() { newCalendarService = origNew })

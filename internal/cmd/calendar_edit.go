@@ -590,6 +590,9 @@ func (c *CalendarUpdateCmd) applyTextFields(kctx *kong.Context, patch *calendar.
 	}
 	if flagProvided(kctx, "description") {
 		patch.Description = strings.TrimSpace(c.Description)
+		if patch.Description == "" {
+			patch.ForceSendFields = appendForceSendField(patch.ForceSendFields, "Description")
+		}
 		changed = true
 	}
 	if flagProvided(kctx, "location") {
@@ -971,6 +974,9 @@ func (c *CalendarUpdateCmd) prepareZoomConferencePatch(
 		// Workspace add-on, or future re-introduction of the Marketplace
 		// add-on path) so --remove-zoom is idempotent across both shapes.
 		patch.Description = applyZoomDescriptionBlock(descriptionForPatch(existing, patch), "")
+		if strings.TrimSpace(patch.Description) == "" {
+			patch.ForceSendFields = appendForceSendField(patch.ForceSendFields, "Description")
+		}
 		if existing != nil && existing.ConferenceData != nil && isZoomConferenceData(existing.ConferenceData) {
 			patch.ConferenceData = nil
 			patch.NullFields = append(patch.NullFields, "ConferenceData")
@@ -991,7 +997,7 @@ func mergeEventPatch(existing, patch *calendar.Event) *calendar.Event {
 	if strings.TrimSpace(patch.Summary) != "" {
 		merged.Summary = patch.Summary
 	}
-	if strings.TrimSpace(patch.Description) != "" {
+	if strings.TrimSpace(patch.Description) != "" || forceSendsField(patch, "Description") {
 		merged.Description = patch.Description
 	}
 	if patch.Start != nil {

@@ -132,15 +132,28 @@ func descriptionHasZoomBlock(desc string) bool {
 }
 
 // descriptionForPatch returns the description to base a description-mutation
-// patch on. If the patch already carries a description (the caller is editing
-// it), use that as the starting point; otherwise fall back to the existing
-// event's description. The existing event is fetched once per patch flow.
+// patch on. If the patch already carries a description intent (including an
+// explicit empty description forced onto the wire), use that as the starting
+// point; otherwise fall back to the existing event's description. The existing
+// event is fetched once per patch flow.
 func descriptionForPatch(existing, patch *calendar.Event) string {
-	if patch != nil && strings.TrimSpace(patch.Description) != "" {
+	if patch != nil && (strings.TrimSpace(patch.Description) != "" || forceSendsField(patch, "Description")) {
 		return patch.Description
 	}
 	if existing != nil {
 		return existing.Description
 	}
 	return ""
+}
+
+func forceSendsField(event *calendar.Event, field string) bool {
+	if event == nil {
+		return false
+	}
+	for _, candidate := range event.ForceSendFields {
+		if candidate == field {
+			return true
+		}
+	}
+	return false
 }
