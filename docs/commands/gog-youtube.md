@@ -2,7 +2,7 @@
 
 > Generated from `gog schema --json`. Do not edit this page by hand; run `make docs-commands`.
 
-YouTube Data API (activities, videos, playlists, comments, channels)
+YouTube Data API (search, activities, videos, playlists, comments, channels)
 
 ## Usage
 
@@ -20,6 +20,7 @@ gog youtube (yt) <command> [flags]
 - [gog youtube channels](gog-youtube-channels.md) - List channels
 - [gog youtube comments](gog-youtube-comments.md) - List comment threads
 - [gog youtube playlists](gog-youtube-playlists.md) - List playlists
+- [gog youtube search](gog-youtube-search.md) - Search YouTube for videos, channels, or playlists
 - [gog youtube videos](gog-youtube-videos.md) - List or get videos
 
 ## Flags
