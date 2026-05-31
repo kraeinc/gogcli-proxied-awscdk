@@ -418,6 +418,11 @@ func TestDryRunE2E_MutatingCommandsSkipAuthAndAPI(t *testing.T) {
 			op:   "classroom.guardians.delete",
 		},
 		{
+			name: "classroom guardian invitations create",
+			args: []string{"classroom", "guardian-invitations", "create", "student@example.com", "--email", "guardian@example.com"},
+			op:   "classroom.guardian-invitations.create",
+		},
+		{
 			name: "contacts other delete",
 			args: []string{"contacts", "other", "delete", "otherContacts/c123"},
 			op:   "contacts.other.delete",

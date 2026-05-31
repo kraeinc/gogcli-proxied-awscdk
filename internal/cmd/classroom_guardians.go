@@ -339,7 +339,7 @@ func (c *ClassroomGuardianInvitesCreateCmd) Run(ctx context.Context, flags *Root
 	}
 
 	invite := &classroom.GuardianInvitation{InvitedEmailAddress: email}
-	if err := dryRunExit(ctx, flags, "classroom.guardian_invitations.create", map[string]any{
+	if err := dryRunExit(ctx, flags, "classroom.guardian-invitations.create", map[string]any{
 		"student_id": studentID,
 		"invitation": invite,
 	}); err != nil {
