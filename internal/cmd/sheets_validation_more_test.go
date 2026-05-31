@@ -130,32 +130,25 @@ func TestSheetsUpdateAppend_ValidationErrors(t *testing.T) {
 	}
 	ctx := ui.WithUI(context.Background(), u)
 	flags := &RootFlags{Account: "a@b.com"}
-
-	if err := (&SheetsUpdateCmd{}).Run(ctx, flags); err == nil {
-		t.Fatalf("expected update missing spreadsheetId error")
-	}
-	if err := (&SheetsUpdateCmd{SpreadsheetID: "s1"}).Run(ctx, flags); err == nil {
-		t.Fatalf("expected update missing range error")
-	}
-	if err := (&SheetsUpdateCmd{SpreadsheetID: "s1", Range: "A1", ValuesJSON: "nope"}).Run(ctx, flags); err == nil {
-		t.Fatalf("expected update invalid json error")
-	}
-	if err := (&SheetsUpdateCmd{SpreadsheetID: "s1", Range: "A1"}).Run(ctx, flags); err == nil {
-		t.Fatalf("expected update missing values error")
+	requireUsage := func(t *testing.T, name string, err error) {
+		t.Helper()
+		if err == nil {
+			t.Fatalf("expected %s error", name)
+		}
+		if got := ExitCode(err); got != 2 {
+			t.Fatalf("%s: expected usage exit code 2, got %d (err=%v)", name, got, err)
+		}
 	}
 
-	if err := (&SheetsAppendCmd{}).Run(ctx, flags); err == nil {
-		t.Fatalf("expected append missing spreadsheetId error")
-	}
-	if err := (&SheetsAppendCmd{SpreadsheetID: "s1"}).Run(ctx, flags); err == nil {
-		t.Fatalf("expected append missing range error")
-	}
-	if err := (&SheetsAppendCmd{SpreadsheetID: "s1", Range: "A1", ValuesJSON: "nope"}).Run(ctx, flags); err == nil {
-		t.Fatalf("expected append invalid json error")
-	}
-	if err := (&SheetsAppendCmd{SpreadsheetID: "s1", Range: "A1"}).Run(ctx, flags); err == nil {
-		t.Fatalf("expected append missing values error")
-	}
+	requireUsage(t, "update missing spreadsheetId", (&SheetsUpdateCmd{}).Run(ctx, flags))
+	requireUsage(t, "update missing range", (&SheetsUpdateCmd{SpreadsheetID: "s1"}).Run(ctx, flags))
+	requireUsage(t, "update invalid json", (&SheetsUpdateCmd{SpreadsheetID: "s1", Range: "A1", ValuesJSON: "nope"}).Run(ctx, flags))
+	requireUsage(t, "update missing values", (&SheetsUpdateCmd{SpreadsheetID: "s1", Range: "A1"}).Run(ctx, flags))
+
+	requireUsage(t, "append missing spreadsheetId", (&SheetsAppendCmd{}).Run(ctx, flags))
+	requireUsage(t, "append missing range", (&SheetsAppendCmd{SpreadsheetID: "s1"}).Run(ctx, flags))
+	requireUsage(t, "append invalid json", (&SheetsAppendCmd{SpreadsheetID: "s1", Range: "A1", ValuesJSON: "nope"}).Run(ctx, flags))
+	requireUsage(t, "append missing values", (&SheetsAppendCmd{SpreadsheetID: "s1", Range: "A1"}).Run(ctx, flags))
 }
 
 func TestSheetsUpdateCopyValidationMissingRange(t *testing.T) {

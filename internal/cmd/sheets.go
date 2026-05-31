@@ -190,16 +190,16 @@ func (c *SheetsUpdateCmd) Run(ctx context.Context, flags *RootFlags) error {
 	case strings.TrimSpace(c.ValuesJSON) != "":
 		b, err := resolveInlineOrFileBytes(c.ValuesJSON)
 		if err != nil {
-			return fmt.Errorf("read --values-json: %w", err)
+			return usagef("read --values-json: %v", err)
 		}
 		dec := json.NewDecoder(strings.NewReader(string(b)))
 		dec.UseNumber()
 		if unmarshalErr := dec.Decode(&values); unmarshalErr != nil {
-			return fmt.Errorf("invalid JSON values: %w", unmarshalErr)
+			return usagef("invalid JSON values: %v", unmarshalErr)
 		}
 		var extra any
 		if extraErr := dec.Decode(&extra); extraErr != io.EOF {
-			return fmt.Errorf("invalid JSON values: trailing content")
+			return usage("invalid JSON values: trailing content")
 		}
 	case len(c.Values) > 0:
 		// Parse comma-separated rows, pipe-separated cells
@@ -214,7 +214,7 @@ func (c *SheetsUpdateCmd) Run(ctx context.Context, flags *RootFlags) error {
 			values = append(values, rowData)
 		}
 	default:
-		return fmt.Errorf("provide values as args or via --values-json")
+		return usage("provide values as args or via --values-json")
 	}
 
 	valueInputOption := strings.TrimSpace(c.ValueInput)
@@ -414,10 +414,10 @@ func (c *SheetsAppendCmd) Run(ctx context.Context, flags *RootFlags) error {
 	case strings.TrimSpace(c.ValuesJSON) != "":
 		b, err := resolveInlineOrFileBytes(c.ValuesJSON)
 		if err != nil {
-			return fmt.Errorf("read --values-json: %w", err)
+			return usagef("read --values-json: %v", err)
 		}
 		if unmarshalErr := json.Unmarshal(b, &values); unmarshalErr != nil {
-			return fmt.Errorf("invalid JSON values: %w", unmarshalErr)
+			return usagef("invalid JSON values: %v", unmarshalErr)
 		}
 	case len(c.Values) > 0:
 		rawValues := strings.Join(c.Values, " ")
@@ -431,7 +431,7 @@ func (c *SheetsAppendCmd) Run(ctx context.Context, flags *RootFlags) error {
 			values = append(values, rowData)
 		}
 	default:
-		return fmt.Errorf("provide values as args or via --values-json")
+		return usage("provide values as args or via --values-json")
 	}
 
 	valueInputOption := strings.TrimSpace(c.ValueInput)
