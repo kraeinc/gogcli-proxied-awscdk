@@ -23,6 +23,7 @@
 - Classroom: return empty JSON arrays, not null, for empty course, roster, invitation, guardian, coursework, material, announcement, topic, and submission lists.
 - Classroom: reject unfiltered `classroom invitations list` locally because the API requires `--course` or `--user`.
 - Classroom: report the canonical hyphenated dry-run op for `guardian-invitations create`.
+- Config: return usage exit code 2 for invalid config keys and values instead of reporting them as generic runtime failures.
 - Forms: return an empty JSON array, not null, for `forms watch list` when a form has no active watches.
 - Forms: return an empty JSON array, not null, for `forms responses list` when a form has no responses.
 - Docs/Sheets/Slides: report service-specific dry-run ops for `copy` commands instead of `drive.copy`.
