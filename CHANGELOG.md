@@ -55,6 +55,7 @@
 - Forms: return usage exit code 2 when `forms watch create --topic` is not in `projects/{project}/topics/{topic}` format instead of accepting an invalid dry-run.
 - Forms: return usage exit code 2 when `forms add-question --index` is below `-1` instead of treating every negative value as append.
 - Sheets: return usage exit code 2 for explicit negative `sheets freeze --rows` and `--cols` values instead of treating `-1` as the internal unset sentinel.
+- Slides: make `slides update-notes --json` and `slides delete-slide --json` return valid JSON, and require `--force` for slide deletion in non-interactive runs.
 - Maps: validate invalid `--mode`, `--units`, and reverse-geocode coordinates before API-key lookup, and use a generic Maps/Places API-key setup error across Maps and Calendar Places commands.
 - MCP: fix docs examples so exact command allowlists include `mcp` and wildcard tool selectors are shell-safe.
 - Docs/Sheets/Slides: report service-specific dry-run ops for `copy` commands instead of `drive.copy`.

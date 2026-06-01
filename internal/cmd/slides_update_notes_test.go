@@ -135,6 +135,65 @@ func TestSlidesUpdateNotes(t *testing.T) {
 	}
 }
 
+func TestSlidesUpdateNotes_JSON(t *testing.T) {
+	origSlides := newSlidesService
+	t.Cleanup(func() { newSlidesService = origSlides })
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		switch {
+		case strings.HasSuffix(r.URL.Path, ":batchUpdate") && r.Method == http.MethodPost:
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"presentationId": "pres1",
+				"replies":        []any{},
+			})
+		case strings.Contains(r.URL.Path, "/presentations/pres1") && r.Method == http.MethodGet:
+			_ = json.NewEncoder(w).Encode(updateNotesPresResponse())
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	svc, err := slides.NewService(context.Background(),
+		option.WithoutAuthentication(),
+		option.WithHTTPClient(srv.Client()),
+		option.WithEndpoint(srv.URL+"/"),
+	)
+	if err != nil {
+		t.Fatalf("slides.NewService: %v", err)
+	}
+	newSlidesService = func(context.Context, string) (*slides.Service, error) { return svc, nil }
+
+	flags := &RootFlags{Account: "a@b.com"}
+	ctx := newCmdJSONContext(t)
+
+	out := captureStdout(t, func() {
+		cmd := &SlidesUpdateNotesCmd{
+			PresentationID: "pres1",
+			SlideID:        "slide_1",
+			Notes:          ptrString("Updated notes content"),
+		}
+		if err := cmd.Run(ctx, flags); err != nil {
+			t.Fatalf("Run: %v", err)
+		}
+	})
+
+	var got struct {
+		PresentationID string `json:"presentationId"`
+		SlideObjectID  string `json:"slideObjectId"`
+		NotesLength    int    `json:"notesLength"`
+		Requests       int    `json:"requests"`
+	}
+	if err := json.Unmarshal([]byte(out), &got); err != nil {
+		t.Fatalf("JSON parse: %v\noutput: %q", err, out)
+	}
+	if got.PresentationID != "pres1" || got.SlideObjectID != "slide_1" || got.NotesLength == 0 || got.Requests != 2 {
+		t.Fatalf("unexpected JSON output: %#v", got)
+	}
+}
+
 func TestSlidesUpdateNotes_EmptySpeakerNotesInsertsOnly(t *testing.T) {
 	origSlides := newSlidesService
 	t.Cleanup(func() { newSlidesService = origSlides })

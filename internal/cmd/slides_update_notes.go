@@ -3,10 +3,12 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	"google.golang.org/api/slides/v1"
 
+	"github.com/steipete/gogcli/internal/outfmt"
 	"github.com/steipete/gogcli/internal/ui"
 )
 
@@ -78,6 +80,15 @@ func (c *SlidesUpdateNotesCmd) Run(ctx context.Context, flags *RootFlags) error 
 		if err != nil {
 			return fmt.Errorf("update speaker notes: %w", err)
 		}
+	}
+
+	if outfmt.IsJSON(ctx) {
+		return outfmt.WriteJSON(ctx, os.Stdout, map[string]any{
+			"presentationId": presentationID,
+			"slideObjectId":  slideID,
+			"notesLength":    len(notes),
+			"requests":       len(requests),
+		})
 	}
 
 	u.Out().Linef("Updated notes on slide %s", slideID)
