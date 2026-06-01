@@ -847,6 +847,8 @@ func TestEnsureExportOutsideRepoRejectsNestedPlaintext(t *testing.T) {
 	}
 	if err := ensureExportOutsideRepo(filepath.Join(repo, "plaintext"), repo); err == nil {
 		t.Fatal("expected nested export dir to be rejected")
+	} else if got := ExitCode(err); got != 2 {
+		t.Fatalf("ExitCode = %d, want 2 (err=%v)", got, err)
 	}
 	if err := ensureExportOutsideRepo(filepath.Join(filepath.Dir(repo), "export"), repo); err != nil {
 		t.Fatalf("outside export rejected: %v", err)

@@ -239,7 +239,7 @@ func ensureExportOutsideRepo(outDir, repo string) error {
 		return err
 	}
 	if rel == "." || (!strings.HasPrefix(rel, ".."+string(filepath.Separator)) && rel != ".." && !filepath.IsAbs(rel)) {
-		return fmt.Errorf("plaintext export directory must be outside backup repo: %s", outDir)
+		return usagef("plaintext export directory must be outside backup repo: %s", outDir)
 	}
 	return nil
 }
