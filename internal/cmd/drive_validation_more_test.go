@@ -126,6 +126,55 @@ func TestDriveListSearchInvalidMaxFailsBeforeService(t *testing.T) {
 	}
 }
 
+func TestDriveScanInvalidBoundsFailBeforeServiceOrDryRun(t *testing.T) {
+	origNew := newDriveService
+	t.Cleanup(func() { newDriveService = origNew })
+	newDriveService = func(context.Context, string) (*drive.Service, error) {
+		t.Fatalf("expected scan validation to fail before creating drive service")
+		return nil, errors.New("unexpected drive service call")
+	}
+
+	u, uiErr := ui.New(ui.Options{Stdout: io.Discard, Stderr: io.Discard, Color: "never"})
+	if uiErr != nil {
+		t.Fatalf("ui.New: %v", uiErr)
+	}
+	ctx := ui.WithUI(context.Background(), u)
+	flags := &RootFlags{Account: "a@b.com"}
+	dryRunFlags := &RootFlags{Account: "a@b.com", DryRun: true}
+	cases := []struct {
+		name string
+		run  func() error
+		want string
+	}{
+		{name: "tree max", run: func() error { return (&DriveTreeCmd{Max: -1}).Run(ctx, flags) }, want: "--max must be >= 0"},
+		{name: "tree depth", run: func() error { return (&DriveTreeCmd{Depth: -1}).Run(ctx, flags) }, want: "--depth must be >= 0"},
+		{name: "inventory max", run: func() error { return (&DriveInventoryCmd{Max: -1}).Run(ctx, flags) }, want: "--max must be >= 0"},
+		{name: "inventory depth", run: func() error { return (&DriveInventoryCmd{Depth: -1}).Run(ctx, flags) }, want: "--depth must be >= 0"},
+		{name: "du max", run: func() error { return (&DriveDuCmd{Max: -1}).Run(ctx, flags) }, want: "--max must be >= 0"},
+		{name: "du depth", run: func() error { return (&DriveDuCmd{Depth: -1}).Run(ctx, flags) }, want: "--depth must be >= 0"},
+		{name: "audit sharing max", run: func() error { return (&DriveAuditSharingCmd{Max: -1}).Run(ctx, flags) }, want: "--max must be >= 0"},
+		{name: "audit sharing depth", run: func() error { return (&DriveAuditSharingCmd{Depth: -1}).Run(ctx, flags) }, want: "--depth must be >= 0"},
+		{name: "audit user max", run: func() error { return (&DriveAuditUserCmd{User: "user@example.com", Max: -1}).Run(ctx, flags) }, want: "--max must be >= 0"},
+		{name: "audit user depth", run: func() error { return (&DriveAuditUserCmd{User: "user@example.com", Depth: -1}).Run(ctx, flags) }, want: "--depth must be >= 0"},
+		{name: "bulk remove max", run: func() error { return (&DriveBulkRemovePublicCmd{Max: -1}).Run(ctx, dryRunFlags) }, want: "--max must be >= 0"},
+		{name: "bulk remove depth", run: func() error { return (&DriveBulkRemovePublicCmd{Depth: -1}).Run(ctx, dryRunFlags) }, want: "--depth must be >= 0"},
+		{name: "bulk update max", run: func() error {
+			return (&DriveBulkUpdateRoleCmd{From: "reader", To: "writer", Max: -1}).Run(ctx, dryRunFlags)
+		}, want: "--max must be >= 0"},
+		{name: "bulk update depth", run: func() error {
+			return (&DriveBulkUpdateRoleCmd{From: "reader", To: "writer", Depth: -1}).Run(ctx, dryRunFlags)
+		}, want: "--depth must be >= 0"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.run()
+			if err == nil || ExitCode(err) != 2 || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("unexpected err: %v", err)
+			}
+		})
+	}
+}
+
 func TestDriveShare_DefaultRole(t *testing.T) {
 	origNew := newDriveService
 	t.Cleanup(func() { newDriveService = origNew })
