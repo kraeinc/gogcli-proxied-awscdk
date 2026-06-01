@@ -38,13 +38,16 @@ type TasksListCmd struct {
 
 func (c *TasksListCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u := ui.FromContext(ctx)
-	account, err := requireAccount(flags)
-	if err != nil {
-		return err
-	}
 	tasklistID := strings.TrimSpace(c.TasklistID)
 	if tasklistID == "" {
 		return usage("empty tasklistId")
+	}
+	if c.Max <= 0 {
+		return usage("max must be > 0")
+	}
+	account, err := requireAccount(flags)
+	if err != nil {
+		return err
 	}
 
 	svc, err := newTasksService(ctx, account)

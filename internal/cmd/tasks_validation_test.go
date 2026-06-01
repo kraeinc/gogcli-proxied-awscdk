@@ -25,6 +25,32 @@ func TestExecute_TasksAdd_RequiresTitle(t *testing.T) {
 	})
 }
 
+func TestExecute_TasksListInvalidMaxFailsBeforeService(t *testing.T) {
+	origNew := newTasksService
+	t.Cleanup(func() { newTasksService = origNew })
+	newTasksService = func(context.Context, string) (*tasks.Service, error) {
+		t.Fatalf("expected max validation to fail before creating service")
+		return nil, errors.New("unexpected tasks service call")
+	}
+
+	cases := [][]string{
+		{"--account", "a@b.com", "tasks", "lists", "--max", "0"},
+		{"--account", "a@b.com", "tasks", "lists", "--max=-1"},
+		{"--account", "a@b.com", "tasks", "list", "l1", "--max", "0"},
+		{"--account", "a@b.com", "tasks", "list", "l1", "--max=-1"},
+	}
+	for _, args := range cases {
+		t.Run(strings.Join(args, "_"), func(t *testing.T) {
+			_ = captureStderr(t, func() {
+				err := Execute(args)
+				if ExitCode(err) != 2 || !strings.Contains(err.Error(), "max must be > 0") {
+					t.Fatalf("unexpected err: %v", err)
+				}
+			})
+		})
+	}
+}
+
 func TestExecute_TasksAdd_RejectsInvalidDueBeforeDryRun(t *testing.T) {
 	origNew := newTasksService
 	t.Cleanup(func() { newTasksService = origNew })

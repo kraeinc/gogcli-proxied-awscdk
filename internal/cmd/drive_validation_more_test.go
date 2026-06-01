@@ -90,6 +90,40 @@ func TestDriveCommands_UsageErrors(t *testing.T) {
 	}
 }
 
+func TestDriveListSearchInvalidMaxFailsBeforeService(t *testing.T) {
+	origNew := newDriveService
+	t.Cleanup(func() { newDriveService = origNew })
+	newDriveService = func(context.Context, string) (*drive.Service, error) {
+		t.Fatalf("expected max validation to fail before creating drive service")
+		return nil, errors.New("unexpected drive service call")
+	}
+
+	u, uiErr := ui.New(ui.Options{Stdout: io.Discard, Stderr: io.Discard, Color: "never"})
+	if uiErr != nil {
+		t.Fatalf("ui.New: %v", uiErr)
+	}
+	ctx := ui.WithUI(context.Background(), u)
+	flags := &RootFlags{Account: "a@b.com"}
+	cases := []struct {
+		name string
+		cmd  any
+		args []string
+	}{
+		{name: "ls zero", cmd: &DriveLsCmd{}, args: []string{"--max", "0"}},
+		{name: "ls negative", cmd: &DriveLsCmd{}, args: []string{"--max=-1"}},
+		{name: "search zero", cmd: &DriveSearchCmd{}, args: []string{"query", "--max", "0"}},
+		{name: "search negative", cmd: &DriveSearchCmd{}, args: []string{"query", "--max=-1"}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := runKong(t, tc.cmd, tc.args, ctx, flags)
+			if ExitCode(err) != 2 || !strings.Contains(err.Error(), "max must be > 0") {
+				t.Fatalf("unexpected err: %v", err)
+			}
+		})
+	}
+}
+
 func TestDriveShare_DefaultRole(t *testing.T) {
 	origNew := newDriveService
 	t.Cleanup(func() { newDriveService = origNew })
