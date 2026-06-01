@@ -55,6 +55,8 @@ func TestAdminUsersCreate_ValidationErrors(t *testing.T) {
 		want string
 	}{
 		{name: "missing email", cmd: AdminUsersCreateCmd{GivenName: "Ada", FamilyName: "Lovelace", Password: "pw"}, want: "email required"},
+		{name: "invalid email", cmd: AdminUsersCreateCmd{Email: "nope", GivenName: "Ada", FamilyName: "Lovelace", Password: "pw"}, want: "invalid email"},
+		{name: "invalid recovery email", cmd: AdminUsersCreateCmd{Email: "ada@example.com", GivenName: "Ada", FamilyName: "Lovelace", RecoveryEmail: "nope"}, want: "invalid --recovery-email"},
 		{name: "missing given", cmd: AdminUsersCreateCmd{Email: "ada@example.com", FamilyName: "Lovelace", Password: "pw"}, want: "--given required"},
 		{name: "missing family", cmd: AdminUsersCreateCmd{Email: "ada@example.com", GivenName: "Ada", Password: "pw"}, want: "--family required"},
 		{name: "hash without password", cmd: AdminUsersCreateCmd{Email: "ada@example.com", GivenName: "Ada", FamilyName: "Lovelace", HashFunction: "sha1"}, want: "--password required when --hash-function is set"},
@@ -540,6 +542,32 @@ func TestAdminListInvalidMaxFailsBeforeWorkspaceCheck(t *testing.T) {
 			err := Execute(args)
 			if ExitCode(err) != 2 || !strings.Contains(err.Error(), "max must be > 0") {
 				t.Fatalf("unexpected err: %v", err)
+			}
+		})
+	}
+}
+
+func TestAdminGroupsMembersAdd_ValidatesEmailsBeforeDryRun(t *testing.T) {
+	ctx := newCmdJSONContext(t)
+	flags := &RootFlags{Account: "svc@example.com", DryRun: true}
+
+	tests := []struct {
+		name string
+		cmd  AdminGroupsMembersAddCmd
+		want string
+	}{
+		{name: "invalid member", cmd: AdminGroupsMembersAddCmd{GroupEmail: "eng@example.com", MemberEmail: "nope"}, want: "invalid member email"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			out := captureStdout(t, func() {
+				err := tc.cmd.Run(ctx, flags)
+				if err == nil || ExitCode(err) != 2 || !strings.Contains(err.Error(), tc.want) {
+					t.Fatalf("unexpected err: %v", err)
+				}
+			})
+			if strings.TrimSpace(out) != "" {
+				t.Fatalf("expected no dry-run output, got %q", out)
 			}
 		})
 	}

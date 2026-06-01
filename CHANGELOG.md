@@ -18,6 +18,7 @@
 - Auth: return usage exit code 2 for invalid service-account key JSON instead of reporting it as a generic runtime failure.
 - Auth: make `auth keep --dry-run` report the planned service-account paths without writing files.
 - Admin: return usage exit code 2 for non-positive users/groups list `--max` values before account/workspace setup.
+- Admin: validate user and group member email inputs before reporting dry-run success.
 - Calendar: make `calendar conflicts` check all calendars by default and reject explicit one-calendar selections instead of silently reporting no cross-calendar conflicts.
 - Calendar: return an empty JSON array, not null, for `calendar conflicts --json` when no conflicts are found.
 - Calendar: return usage exit code 2 for invalid event type, color, visibility, transparency, notification, and recurring-scope flags.
@@ -38,6 +39,7 @@
 - Chat: return usage exit code 2 for non-positive list/find `--max` values before account/workspace setup.
 - Contacts: warm the People API contact-search cache, including Google's documented propagation wait, before contact and other-contact searches plus Gmail `--from-contact` resolution so fresh contact changes are visible.
 - Contacts: use an other-contact-safe read mask for `contacts other list` and `contacts other search` so Google does not reject the request.
+- Contacts: validate create/update email inputs before reporting dry-run success.
 - Contacts: return usage exit code 2 for non-positive `contacts list/search --max` values before auth/API setup.
 - Contacts: return usage exit code 2 for non-positive directory and other-contact list/search `--max` values before auth/API setup.
 - Classroom: return empty JSON arrays, not null, for empty course, roster, invitation, guardian, coursework, material, announcement, topic, and submission lists.

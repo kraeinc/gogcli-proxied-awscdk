@@ -365,6 +365,11 @@ func flagValue[T any](set bool, value T) any {
 }
 
 func (c *ContactsUpdateCmd) validateFlagUpdateInputs(wantBirthday, wantCustom, wantRelation bool) error {
+	if strings.TrimSpace(c.Email) != "" {
+		if err := validatePlainEmail("--email", strings.TrimSpace(c.Email)); err != nil {
+			return err
+		}
+	}
 	if wantCustom {
 		if _, _, err := parseCustomUserDefined(c.Custom, true); err != nil {
 			return usage(err.Error())
@@ -396,7 +401,11 @@ func (c *ContactsCreateCmd) Run(ctx context.Context, flags *RootFlags) error {
 		}},
 	}
 	if strings.TrimSpace(c.Email) != "" {
-		p.EmailAddresses = []*people.EmailAddress{{Value: strings.TrimSpace(c.Email)}}
+		email := strings.TrimSpace(c.Email)
+		if err := validatePlainEmail("--email", email); err != nil {
+			return err
+		}
+		p.EmailAddresses = []*people.EmailAddress{{Value: email}}
 	}
 	if strings.TrimSpace(c.Phone) != "" {
 		p.PhoneNumbers = []*people.PhoneNumber{{Value: strings.TrimSpace(c.Phone)}}

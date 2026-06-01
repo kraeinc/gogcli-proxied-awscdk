@@ -239,6 +239,9 @@ func (c *AdminGroupsMembersAddCmd) Run(ctx context.Context, flags *RootFlags) er
 	if groupEmail == "" || memberEmail == "" {
 		return usage("group email and member email required")
 	}
+	if err := validatePlainEmail("member email", memberEmail); err != nil {
+		return err
+	}
 
 	role := strings.ToUpper(c.Role)
 	if role != adminRoleMember && role != adminRoleManager && role != adminRoleOwner {

@@ -247,6 +247,9 @@ func (c *AdminUsersCreateCmd) Run(ctx context.Context, flags *RootFlags) error {
 	if email == "" {
 		return usage("email required")
 	}
+	if err := validatePlainEmail("email", email); err != nil {
+		return err
+	}
 	if givenName == "" {
 		return usage("--given required")
 	}
@@ -278,7 +281,11 @@ func (c *AdminUsersCreateCmd) Run(ctx context.Context, flags *RootFlags) error {
 		dryRunUser.OrgUnitPath = strings.TrimSpace(c.OrgUnit)
 	}
 	if c.RecoveryEmail != "" {
-		dryRunUser.RecoveryEmail = strings.TrimSpace(c.RecoveryEmail)
+		recoveryEmail := strings.TrimSpace(c.RecoveryEmail)
+		if emailErr := validatePlainEmail("--recovery-email", recoveryEmail); emailErr != nil {
+			return emailErr
+		}
+		dryRunUser.RecoveryEmail = recoveryEmail
 	}
 	if c.RecoveryPhone != "" {
 		dryRunUser.RecoveryPhone = strings.TrimSpace(c.RecoveryPhone)
