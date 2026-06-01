@@ -59,6 +59,9 @@ func (c *GmailDelegatesGetCmd) Run(ctx context.Context, flags *RootFlags) error 
 	if delegateEmail == "" {
 		return usage("empty delegateEmail")
 	}
+	if validateErr := validateGmailSettingsEmail("delegateEmail", delegateEmail); validateErr != nil {
+		return validateErr
+	}
 	delegate, err := svc.Users.Settings.Delegates.Get("me", delegateEmail).Do()
 	if err != nil {
 		return err
@@ -77,6 +80,9 @@ func (c *GmailDelegatesAddCmd) Run(ctx context.Context, flags *RootFlags) error 
 	delegateEmail := strings.TrimSpace(c.DelegateEmail)
 	if delegateEmail == "" {
 		return usage("empty delegateEmail")
+	}
+	if err := validateGmailSettingsEmail("delegateEmail", delegateEmail); err != nil {
+		return err
 	}
 
 	if err := dryRunExit(ctx, flags, "gmail.delegates.add", map[string]any{
@@ -121,6 +127,9 @@ func (c *GmailDelegatesRemoveCmd) Run(ctx context.Context, flags *RootFlags) err
 	delegateEmail := strings.TrimSpace(c.DelegateEmail)
 	if delegateEmail == "" {
 		return usage("empty delegateEmail")
+	}
+	if err := validateGmailSettingsEmail("delegateEmail", delegateEmail); err != nil {
+		return err
 	}
 
 	if confirmErr := dryRunAndConfirmDestructive(ctx, flags, "gmail.delegates.remove", map[string]any{

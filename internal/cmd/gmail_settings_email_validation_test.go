@@ -63,6 +63,32 @@ func TestGmailForwarding_InvalidEmailFailsBeforeDryRun(t *testing.T) {
 	}
 }
 
+func TestGmailDelegates_InvalidEmailFailsBeforeDryRun(t *testing.T) {
+	origNew := newGmailService
+	t.Cleanup(func() { newGmailService = origNew })
+	newGmailService = func(context.Context, string) (*gmail.Service, error) {
+		t.Fatalf("expected validation to fail before creating gmail service")
+		return nil, errors.New("unexpected gmail service call")
+	}
+
+	testCases := [][]string{
+		{"--account", "a@b.com", "--dry-run", "gmail", "delegates", "add", "nope"},
+		{"--account", "a@b.com", "--dry-run", "gmail", "delegates", "remove", "nope"},
+		{"--account", "a@b.com", "--dry-run", "gmail", "delegates", "add", "Tester <x@example.com>"},
+	}
+	for _, args := range testCases {
+		t.Run(strings.Join(args[4:], "_"), func(t *testing.T) {
+			_ = captureStderr(t, func() {
+				err := Execute(args)
+				var exitErr *ExitError
+				if !errors.As(err, &exitErr) || exitErr.Code != 2 || !strings.Contains(err.Error(), "invalid delegateEmail") {
+					t.Fatalf("unexpected err: %v", err)
+				}
+			})
+		})
+	}
+}
+
 func TestGmailSendAs_InvalidEmailFailsBeforeDryRun(t *testing.T) {
 	origNew := newGmailService
 	t.Cleanup(func() { newGmailService = origNew })
