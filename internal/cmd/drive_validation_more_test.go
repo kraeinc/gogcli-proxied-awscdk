@@ -158,9 +158,12 @@ func TestDriveShareNormalizeTarget(t *testing.T) {
 		{name: "ambiguous target", cmd: DriveShareCmd{Anyone: true, Email: "x@example.com"}, wantErr: "ambiguous share target"},
 		{name: "anyone with email", cmd: DriveShareCmd{To: driveShareToAnyone, Email: "x@example.com"}, wantErr: "--to=anyone cannot be combined"},
 		{name: "user without email", cmd: DriveShareCmd{To: driveShareToUser}, wantErr: "missing --email"},
+		{name: "user invalid email", cmd: DriveShareCmd{To: driveShareToUser, Email: "nope"}, wantErr: "invalid --email"},
 		{name: "user with domain", cmd: DriveShareCmd{To: driveShareToUser, Email: "x@example.com", Domain: "example.com"}, wantErr: "--to=user cannot be combined"},
 		{name: "user discoverable", cmd: DriveShareCmd{To: driveShareToUser, Email: "x@example.com", Discoverable: true}, wantErr: "--discoverable is only valid"},
 		{name: "domain without domain", cmd: DriveShareCmd{To: driveShareToDomain}, wantErr: "missing --domain"},
+		{name: "domain invalid spaces", cmd: DriveShareCmd{To: driveShareToDomain, Domain: "not a domain"}, wantErr: "invalid --domain"},
+		{name: "domain invalid url", cmd: DriveShareCmd{To: driveShareToDomain, Domain: "https://example.com"}, wantErr: "invalid --domain"},
 		{name: "domain with email", cmd: DriveShareCmd{To: driveShareToDomain, Domain: "example.com", Email: "x@example.com"}, wantErr: "--to=domain cannot be combined"},
 		{name: "invalid target", cmd: DriveShareCmd{To: "group"}, wantErr: "invalid --to"},
 	}
@@ -183,6 +186,49 @@ func TestDriveShareNormalizeTarget(t *testing.T) {
 			if got != tt.want {
 				t.Fatalf("target = %#v, want %#v", got, tt.want)
 			}
+		})
+	}
+}
+
+func TestDriveShare_InvalidTargetsFailBeforeDryRun(t *testing.T) {
+	origNew := newDriveService
+	t.Cleanup(func() { newDriveService = origNew })
+	newDriveService = func(context.Context, string) (*drive.Service, error) {
+		t.Fatalf("expected validation to fail before creating drive service")
+		return nil, errors.New("unexpected drive service call")
+	}
+
+	testCases := []struct {
+		name string
+		args []string
+		want string
+	}{
+		{
+			name: "invalid email",
+			args: []string{"--account", "a@b.com", "--dry-run", "drive", "share", "f1", "--to=user", "--email", "nope"},
+			want: "invalid --email",
+		},
+		{
+			name: "display name email",
+			args: []string{"--account", "a@b.com", "--dry-run", "drive", "share", "f1", "--to=user", "--email", "Tester <x@example.com>"},
+			want: "invalid --email",
+		},
+		{
+			name: "invalid domain",
+			args: []string{"--account", "a@b.com", "--dry-run", "drive", "share", "f1", "--to=domain", "--domain", "not a domain"},
+			want: "invalid --domain",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			_ = captureStderr(t, func() {
+				err := Execute(tc.args)
+				var exitErr *ExitError
+				if !errors.As(err, &exitErr) || exitErr.Code != 2 || !strings.Contains(err.Error(), tc.want) {
+					t.Fatalf("unexpected err: %v", err)
+				}
+			})
 		})
 	}
 }
