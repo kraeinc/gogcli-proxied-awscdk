@@ -48,6 +48,7 @@
 - Docs: return usage exit code 2 when `docs sed` table operations target missing or out-of-range tables, rows, or columns.
 - Docs: return usage exit code 2 when `docs sed` receives malformed expressions.
 - Docs: return usage exit code 2 when `docs cell-style` and `docs table-column-width` target missing or out-of-range tables or columns.
+- Docs: validate comment anchor JSON before dry-run instead of accepting invalid comment anchor requests.
 - CLI: report public command paths in dry-run op fields for service-account, Calendar, Forms, Meet, and Sheets named-range commands.
 - CLI: preserve command-local `--fields` API masks for Drive, Drive Labels, Sites, and Calendar Events instead of rewriting them to JSON `--select`.
 - Drive: return usage exit code 2 when `drive download --tab` rejects unsupported export formats.
