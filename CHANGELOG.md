@@ -14,6 +14,7 @@
 
 ### Fixed
 
+- Docs: avoid duplicate empty paragraphs around Markdown tables written into a specific tab. (#715) — thanks @sebsnyk.
 - Sheets: prevent accidental table data loss by requiring explicit `--discard-data` for `sheets table delete`, matching the Sheets API's destructive table-delete semantics. (#709) — thanks @chrischall.
 
 ## 0.22.0 - 2026-06-07
