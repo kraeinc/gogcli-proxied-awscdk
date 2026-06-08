@@ -228,6 +228,7 @@ Generated from `gog schema --json`.
       - [`gog docs (doc) comments delete (rm,del,remove) <docId> <commentId>`](commands/gog-docs-comments-delete.md) - Delete a comment
       - [`gog docs (doc) comments get (info,show) <docId> <commentId>`](commands/gog-docs-comments-get.md) - Get a comment by ID
       - [`gog docs (doc) comments list (ls) <docId> [flags]`](commands/gog-docs-comments-list.md) - List comments on a Google Doc
+      - [`gog docs (doc) comments locate <docId> <commentId> [flags]`](commands/gog-docs-comments-locate.md) - Resolve a comment quote to Docs API index ranges
       - [`gog docs (doc) comments reopen <docId> <commentId> [flags]`](commands/gog-docs-comments-reopen.md) - Reopen a previously resolved comment
       - [`gog docs (doc) comments reply (respond) <docId> <commentId> <content> [flags]`](commands/gog-docs-comments-reply.md) - Reply to a comment
       - [`gog docs (doc) comments resolve <docId> <commentId> [flags]`](commands/gog-docs-comments-resolve.md) - Resolve a comment (mark as done)

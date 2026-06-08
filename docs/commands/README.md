@@ -2,7 +2,7 @@
 
 Every `gog` command has a generated docs page. The source of truth is the live CLI schema; run `make docs-commands` after changing command names, flags, help text, aliases, or arguments.
 
-Generated pages: 587.
+Generated pages: 588.
 
 ## Top-level Commands
 
@@ -280,6 +280,7 @@ Generated pages: 587.
       - [gog docs comments delete](gog-docs-comments-delete.md) - Delete a comment
       - [gog docs comments get](gog-docs-comments-get.md) - Get a comment by ID
       - [gog docs comments list](gog-docs-comments-list.md) - List comments on a Google Doc
+      - [gog docs comments locate](gog-docs-comments-locate.md) - Resolve a comment quote to Docs API index ranges
       - [gog docs comments reopen](gog-docs-comments-reopen.md) - Reopen a previously resolved comment
       - [gog docs comments reply](gog-docs-comments-reply.md) - Reply to a comment
       - [gog docs comments resolve](gog-docs-comments-resolve.md) - Resolve a comment (mark as done)

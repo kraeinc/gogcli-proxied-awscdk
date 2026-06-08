@@ -5,6 +5,7 @@
 ### Added
 
 - Chat: add repeatable `--attach` to `chat messages send` for sending local files with Google Chat messages. (#694) — thanks @omothm.
+- Docs: add `docs comments locate` to resolve comment quotes to Docs API index ranges and report orphaned comments. (#687) — thanks @sebsnyk.
 - Docs: add `docs find-range` to map matched text to Docs API UTF-16 index ranges. (#682) — thanks @sebsnyk.
 - Docs: add `--link` and `--no-link` to `docs format` for setting or clearing hyperlinks on matched text. (#684) — thanks @sebsnyk.
 - Sheets: add `sheets links set` to write single-cell, multi-link rich-text, and batch hyperlinks. (#713) — thanks @chrischall.
