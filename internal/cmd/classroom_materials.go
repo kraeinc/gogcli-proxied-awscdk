@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 
 	"google.golang.org/api/classroom/v1"
@@ -154,7 +153,7 @@ func (c *ClassroomMaterialsGetCmd) Run(ctx context.Context, flags *RootFlags) er
 	}
 
 	if outfmt.IsJSON(ctx) {
-		return outfmt.WriteJSON(ctx, os.Stdout, map[string]any{"material": material})
+		return outfmt.WriteJSON(ctx, stdoutWriter(ctx), map[string]any{"material": material})
 	}
 
 	u.Out().Linef("id\t%s", material.Id)
@@ -223,7 +222,7 @@ func (c *ClassroomMaterialsCreateCmd) Run(ctx context.Context, flags *RootFlags)
 	}
 
 	if outfmt.IsJSON(ctx) {
-		return outfmt.WriteJSON(ctx, os.Stdout, map[string]any{"material": created})
+		return outfmt.WriteJSON(ctx, stdoutWriter(ctx), map[string]any{"material": created})
 	}
 	u.Out().Linef("id\t%s", created.Id)
 	u.Out().Linef("title\t%s", created.Title)
@@ -299,7 +298,7 @@ func (c *ClassroomMaterialsUpdateCmd) Run(ctx context.Context, flags *RootFlags)
 	}
 
 	if outfmt.IsJSON(ctx) {
-		return outfmt.WriteJSON(ctx, os.Stdout, map[string]any{"material": updated})
+		return outfmt.WriteJSON(ctx, stdoutWriter(ctx), map[string]any{"material": updated})
 	}
 	u.Out().Linef("id\t%s", updated.Id)
 	u.Out().Linef("title\t%s", updated.Title)

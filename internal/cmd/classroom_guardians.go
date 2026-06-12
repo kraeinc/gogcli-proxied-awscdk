@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 
 	"google.golang.org/api/classroom/v1"
@@ -68,7 +67,7 @@ func (c *ClassroomGuardiansListCmd) Run(ctx context.Context, flags *RootFlags) e
 	guardians = nonNilClassroomItems(guardians)
 
 	if outfmt.IsJSON(ctx) {
-		if err := outfmt.WriteJSON(ctx, os.Stdout, map[string]any{
+		if err := outfmt.WriteJSON(ctx, stdoutWriter(ctx), map[string]any{
 			"guardians":     guardians,
 			"nextPageToken": nextPageToken,
 		}); err != nil {
@@ -133,7 +132,7 @@ func (c *ClassroomGuardiansGetCmd) Run(ctx context.Context, flags *RootFlags) er
 	}
 
 	if outfmt.IsJSON(ctx) {
-		return outfmt.WriteJSON(ctx, os.Stdout, map[string]any{"guardian": guardian})
+		return outfmt.WriteJSON(ctx, stdoutWriter(ctx), map[string]any{"guardian": guardian})
 	}
 
 	u.Out().Linef("id\t%s", guardian.GuardianId)
@@ -251,7 +250,7 @@ func (c *ClassroomGuardianInvitesListCmd) Run(ctx context.Context, flags *RootFl
 	invitations = nonNilClassroomItems(invitations)
 
 	if outfmt.IsJSON(ctx) {
-		if err := outfmt.WriteJSON(ctx, os.Stdout, map[string]any{
+		if err := outfmt.WriteJSON(ctx, stdoutWriter(ctx), map[string]any{
 			"invitations":   invitations,
 			"nextPageToken": nextPageToken,
 		}); err != nil {
@@ -317,7 +316,7 @@ func (c *ClassroomGuardianInvitesGetCmd) Run(ctx context.Context, flags *RootFla
 	}
 
 	if outfmt.IsJSON(ctx) {
-		return outfmt.WriteJSON(ctx, os.Stdout, map[string]any{"invitation": inv})
+		return outfmt.WriteJSON(ctx, stdoutWriter(ctx), map[string]any{"invitation": inv})
 	}
 
 	u.Out().Linef("id\t%s", inv.InvitationId)
@@ -370,7 +369,7 @@ func (c *ClassroomGuardianInvitesCreateCmd) Run(ctx context.Context, flags *Root
 	}
 
 	if outfmt.IsJSON(ctx) {
-		return outfmt.WriteJSON(ctx, os.Stdout, map[string]any{"invitation": created})
+		return outfmt.WriteJSON(ctx, stdoutWriter(ctx), map[string]any{"invitation": created})
 	}
 	u.Out().Linef("id\t%s", created.InvitationId)
 	u.Out().Linef("student_id\t%s", created.StudentId)

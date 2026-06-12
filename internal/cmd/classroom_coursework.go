@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 
 	"google.golang.org/api/classroom/v1"
@@ -157,7 +156,7 @@ func (c *ClassroomCourseworkGetCmd) Run(ctx context.Context, flags *RootFlags) e
 	}
 
 	if outfmt.IsJSON(ctx) {
-		return outfmt.WriteJSON(ctx, os.Stdout, map[string]any{"coursework": work})
+		return outfmt.WriteJSON(ctx, stdoutWriter(ctx), map[string]any{"coursework": work})
 	}
 
 	u.Out().Linef("id\t%s", work.Id)
@@ -277,7 +276,7 @@ func (c *ClassroomCourseworkCreateCmd) Run(ctx context.Context, flags *RootFlags
 	}
 
 	if outfmt.IsJSON(ctx) {
-		return outfmt.WriteJSON(ctx, os.Stdout, map[string]any{"coursework": created})
+		return outfmt.WriteJSON(ctx, stdoutWriter(ctx), map[string]any{"coursework": created})
 	}
 	u.Out().Linef("id\t%s", created.Id)
 	u.Out().Linef("title\t%s", created.Title)
@@ -397,7 +396,7 @@ func (c *ClassroomCourseworkUpdateCmd) Run(ctx context.Context, flags *RootFlags
 	}
 
 	if outfmt.IsJSON(ctx) {
-		return outfmt.WriteJSON(ctx, os.Stdout, map[string]any{"coursework": updated})
+		return outfmt.WriteJSON(ctx, stdoutWriter(ctx), map[string]any{"coursework": updated})
 	}
 	u.Out().Linef("id\t%s", updated.Id)
 	u.Out().Linef("title\t%s", updated.Title)
@@ -494,7 +493,7 @@ func (c *ClassroomCourseworkAssigneesCmd) Run(ctx context.Context, flags *RootFl
 	}
 
 	if outfmt.IsJSON(ctx) {
-		return outfmt.WriteJSON(ctx, os.Stdout, map[string]any{"coursework": updated})
+		return outfmt.WriteJSON(ctx, stdoutWriter(ctx), map[string]any{"coursework": updated})
 	}
 	u.Out().Linef("id\t%s", updated.Id)
 	u.Out().Linef("assignee_mode\t%s", updated.AssigneeMode)
