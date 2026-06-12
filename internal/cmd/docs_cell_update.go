@@ -221,7 +221,7 @@ func updateDocsCellContent(ctx context.Context, svc *docs.Service, doc *docs.Doc
 
 func buildMarkdownCellContent(content string, baseIndex int64, tabID string) ([]*docs.Request, string, int64, error) {
 	elements := docsmarkdown.ParseMarkdown(content)
-	formatReqs, text, tables := MarkdownToDocsRequests(elements, baseIndex, tabID)
+	formatReqs, text, tables := docsmarkdown.MarkdownToDocsRequests(elements, baseIndex, tabID)
 	if len(tables) > 0 {
 		return nil, "", 0, usage("markdown tables are not supported inside table cells")
 	}

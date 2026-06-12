@@ -136,7 +136,7 @@ func replaceDocsMarkdownRange(ctx context.Context, svc *docs.Service, doc *docs.
 		prefix = "\n"
 		baseIndex++
 	}
-	formattingRequests, textToInsert, tables := MarkdownToDocsRequests(elements, baseIndex, tabID)
+	formattingRequests, textToInsert, tables := docsmarkdown.MarkdownToDocsRequests(elements, baseIndex, tabID)
 	inlineReplacement := markdownRangeReplacementIsInline(cleaned, elements)
 	if inlineReplacement {
 		textToInsert = strings.TrimSuffix(textToInsert, "\n")
@@ -266,7 +266,7 @@ func insertDocsMarkdownAtWithOptionsAndEnd(ctx context.Context, svc *docs.Servic
 		prefix = "\n"
 		baseIndex++
 	}
-	formattingRequests, textToInsert, tables := MarkdownToDocsRequests(elements, baseIndex, tabID)
+	formattingRequests, textToInsert, tables := docsmarkdown.MarkdownToDocsRequests(elements, baseIndex, tabID)
 	if textToInsert == "" {
 		return 0, 0, insertIdx, nil
 	}

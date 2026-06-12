@@ -69,3 +69,31 @@ func TestParseInlineFormatting_Thai(t *testing.T) {
 		})
 	}
 }
+
+func TestMarkdownToDocsRequests_ThaiAppend(t *testing.T) {
+	const sample = `## ส่วนคำถาม
+
+คำถามที่พบบ่อยของลูกค้า
+
+- ราคาเท่าไหร่
+- ส่งของเมื่อไหร่
+
+> ติดต่อสอบถามเพิ่มเติม
+`
+
+	withTimeout(t, 5*time.Second, "MarkdownToDocsRequests", func() {
+		elements := ParseMarkdown(sample)
+		if len(elements) == 0 {
+			t.Fatal("ParseMarkdown returned no elements for Thai sample")
+		}
+
+		reqs, plain, _ := MarkdownToDocsRequests(elements, 100, "")
+		if plain == "" {
+			t.Fatal("MarkdownToDocsRequests returned empty plain text for Thai sample")
+		}
+
+		if len(reqs) == 0 {
+			t.Fatal("MarkdownToDocsRequests returned no requests for Thai sample")
+		}
+	})
+}

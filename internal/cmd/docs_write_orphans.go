@@ -154,7 +154,7 @@ func docsWriteMarkdownDocument(content string) *docs.Document {
 			}
 			continue
 		}
-		_, text, _ := MarkdownToDocsRequests([]docsmarkdown.MarkdownElement{element}, index, "")
+		_, text, _ := docsmarkdown.MarkdownToDocsRequests([]docsmarkdown.MarkdownElement{element}, index, "")
 		if text == "" {
 			continue
 		}
@@ -175,7 +175,7 @@ func docsWriteMarkdownTable(cells [][]string, index int64) (*docs.StructuralElem
 		for _, cellMarkdown := range rowCells {
 			elements := docsmarkdown.ParseMarkdown(cellMarkdown)
 			docsmarkdown.StripElementHeadingAnchors(elements)
-			_, text, _ := MarkdownToDocsRequests(elements, index, "")
+			_, text, _ := docsmarkdown.MarkdownToDocsRequests(elements, index, "")
 			if text == "" {
 				text = "\n"
 			}

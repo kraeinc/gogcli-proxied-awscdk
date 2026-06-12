@@ -1,28 +1,25 @@
-package cmd
+package docsmarkdown
 
 import (
-	"fmt"
 	"strings"
 
 	"google.golang.org/api/docs/v1"
-
-	"github.com/steipete/gogcli/internal/docsmarkdown"
 )
 
-// docsSoftLineBreak is the Google Docs InsertText character for a line break
+// SoftLineBreak is the Google Docs InsertText character for a line break
 // inside the current paragraph. Live Docs API readback returns it inside the
 // same textRun, which lets fenced code blocks keep one shaded paragraph.
-const docsSoftLineBreak = "\v"
+const SoftLineBreak = "\v"
 
 const (
 	docsFencedCodeFontFamily = "Roboto Mono"
 	docsFencedCodeColorRed   = 0.09411764705882353
 	docsFencedCodeColorGreen = 0.5019607843137255
 	docsFencedCodeColorBlue  = 0.2196078431372549
+	bulletPresetDisc         = "BULLET_DISC_CIRCLE_SQUARE"
+	bulletPresetNumbered     = "NUMBERED_DECIMAL_NESTED"
+	docsNamedStyleNormalText = "NORMAL_TEXT"
 )
-
-// Debug flag for markdown formatter
-var debugMarkdown = false
 
 // TableData represents a table to be inserted natively
 type TableData struct {
@@ -33,34 +30,20 @@ type TableData struct {
 // MarkdownToDocsRequests converts parsed markdown elements to Google Docs batch
 // update requests. baseIndex is the insertion location in the document.
 // Returns: requests, plainText, tableData (for native table insertion)
-func MarkdownToDocsRequests(elements []docsmarkdown.MarkdownElement, baseIndex int64, tabID string) ([]*docs.Request, string, []TableData) {
+func MarkdownToDocsRequests(elements []MarkdownElement, baseIndex int64, tabID string) ([]*docs.Request, string, []TableData) {
 	var requests []*docs.Request
 	var plainText strings.Builder
 	var tables []TableData
 	charOffset := baseIndex
-
-	if debugMarkdown {
-		fmt.Printf("[DEBUG] Starting MarkdownToDocsRequests with %d elements\n", len(elements))
-	}
 
 	for i := 0; i < len(elements); i++ {
 		el := elements[i]
 		startOffset := charOffset
 
 		switch el.Type {
-		case docsmarkdown.MDHeading1, docsmarkdown.MDHeading2, docsmarkdown.MDHeading3, docsmarkdown.MDHeading4, docsmarkdown.MDHeading5, docsmarkdown.MDHeading6:
+		case MDHeading1, MDHeading2, MDHeading3, MDHeading4, MDHeading5, MDHeading6:
 			// Parse inline formatting for heading content
-			styles, strippedContent := docsmarkdown.ParseInlineFormatting(el.Content)
-
-			if debugMarkdown {
-				fmt.Printf("[DEBUG] Heading: content=%q stripped=%q styles=%d\n", el.Content, strippedContent, len(styles))
-			}
-
-			if debugMarkdown {
-				fmt.Printf("[HEADING] Content: %q\n", el.Content)
-				fmt.Printf("  Stripped: %q (len=%d)\n", strippedContent, len(strippedContent))
-				fmt.Printf("  Styles: %v\n", styles)
-			}
+			styles, strippedContent := ParseInlineFormatting(el.Content)
 
 			// Add stripped heading text with newline
 			plainText.WriteString(strippedContent)
@@ -87,23 +70,18 @@ func MarkdownToDocsRequests(elements []docsmarkdown.MarkdownElement, baseIndex i
 			for _, style := range styles {
 				textStyleReq := buildTextStyleRequest(style, startOffset, tabID)
 				if textStyleReq != nil {
-					if debugMarkdown {
-						fmt.Printf("  Style request: [%d, %d]\n",
-							textStyleReq.UpdateTextStyle.Range.StartIndex,
-							textStyleReq.UpdateTextStyle.Range.EndIndex)
-					}
 					requests = append(requests, textStyleReq)
 				}
 			}
 
-		case docsmarkdown.MDCodeBlock:
+		case MDCodeBlock:
 			// Render the fenced code block as a single contiguous paragraph.
 			// Embedded line breaks become soft line breaks (vertical tab) so
 			// Docs keeps them inside one paragraph, which lets us apply a
 			// single paragraph-level background shading across the whole block
 			// instead of emitting one styled paragraph per source line.
 			// See #594.
-			codeBody := strings.ReplaceAll(el.Content, "\n", docsSoftLineBreak)
+			codeBody := strings.ReplaceAll(el.Content, "\n", SoftLineBreak)
 			codeContent := codeBody + "\n"
 			plainText.WriteString(codeContent)
 			charOffset += utf16Len(codeContent)
@@ -163,13 +141,9 @@ func MarkdownToDocsRequests(elements []docsmarkdown.MarkdownElement, baseIndex i
 				},
 			})
 
-		case docsmarkdown.MDBlockquote:
+		case MDBlockquote:
 			// Parse inline formatting for blockquote content
-			styles, strippedContent := docsmarkdown.ParseInlineFormatting(el.Content)
-
-			if debugMarkdown {
-				fmt.Printf("[BLOCKQUOTE] Content: %q -> stripped=%q\n", el.Content, strippedContent)
-			}
+			styles, strippedContent := ParseInlineFormatting(el.Content)
 
 			// Add stripped blockquote text
 			plainText.WriteString(strippedContent)
@@ -198,20 +172,15 @@ func MarkdownToDocsRequests(elements []docsmarkdown.MarkdownElement, baseIndex i
 			for _, style := range styles {
 				textStyleReq := buildTextStyleRequest(style, startOffset, tabID)
 				if textStyleReq != nil {
-					if debugMarkdown {
-						fmt.Printf("  Style request: [%d, %d] (base=%d, style=[%d,%d])\n",
-							textStyleReq.UpdateTextStyle.Range.StartIndex,
-							textStyleReq.UpdateTextStyle.Range.EndIndex,
-							startOffset, style.Start, style.End)
-					}
 					requests = append(requests, textStyleReq)
 				}
 			}
 
-		case docsmarkdown.MDListItem, docsmarkdown.MDNumberedList:
+		case MDListItem, MDNumberedList:
 			blockEnd := startOffset
+
 			bulletPreset := bulletPresetDisc
-			if el.Type == docsmarkdown.MDNumberedList {
+			if el.Type == MDNumberedList {
 				bulletPreset = bulletPresetNumbered
 			}
 			blockType := el.Type
@@ -220,23 +189,20 @@ func MarkdownToDocsRequests(elements []docsmarkdown.MarkdownElement, baseIndex i
 
 			for ; i < len(elements); i++ {
 				el = elements[i]
-				if el.Type != docsmarkdown.MDListItem && el.Type != docsmarkdown.MDNumberedList {
+				if el.Type != MDListItem && el.Type != MDNumberedList {
 					i--
 					break
 				}
+
 				if el.Type != blockType && el.Level == 0 {
 					i--
 					break
 				}
 
-				styles, strippedContent := docsmarkdown.ParseInlineFormatting(el.Content)
+				styles, strippedContent := ParseInlineFormatting(el.Content)
 				leadingTabs := strings.Repeat("\t", el.Level)
 				itemStart := charOffset
 				itemEnd := itemStart + utf16Len(strippedContent+"\n")
-
-				if debugMarkdown {
-					fmt.Printf("[LIST] Content: %q -> stripped=%q styles=%d\n", el.Content, strippedContent, len(styles))
-				}
 
 				// Emit list items as bare paragraphs with leading tabs for
 				// nesting, then promote the whole contiguous list block to a
@@ -251,9 +217,10 @@ func MarkdownToDocsRequests(elements []docsmarkdown.MarkdownElement, baseIndex i
 
 				if el.Type != blockType {
 					itemPreset := bulletPresetDisc
-					if el.Type == docsmarkdown.MDNumberedList {
+					if el.Type == MDNumberedList {
 						itemPreset = bulletPresetNumbered
 					}
+
 					listPresetRequests = append(listPresetRequests, &docs.Request{
 						CreateParagraphBullets: &docs.CreateParagraphBulletsRequest{
 							Range: &docs.Range{
@@ -288,70 +255,52 @@ func MarkdownToDocsRequests(elements []docsmarkdown.MarkdownElement, baseIndex i
 			requests = append(requests, listPresetRequests...)
 			requests = append(requests, listStyleRequests...)
 
-		case docsmarkdown.MDHorizontalRule:
+		case MDHorizontalRule:
 			// Add horizontal rule as a separator line using ASCII dashes
 			separator := strings.Repeat("-", 40)
 			plainText.WriteString(separator)
 			plainText.WriteString("\n")
 			charOffset += utf16Len(separator + "\n")
 
-		case docsmarkdown.MDParagraph:
+		case MDParagraph:
 			// Parse inline formatting for paragraph content
-			styles, strippedContent := docsmarkdown.ParseInlineFormatting(el.Content)
-
-			if debugMarkdown {
-				fmt.Printf("[PARAGRAPH] Content: %q\n", el.Content)
-				fmt.Printf("  Stripped: %q (len=%d)\n", strippedContent, len(strippedContent))
-				fmt.Printf("  Styles: %v\n", styles)
-				fmt.Printf("  startOffset: %d, len+1: %d\n", startOffset, len(strippedContent)+1)
-			}
+			styles, strippedContent := ParseInlineFormatting(el.Content)
 
 			// Add stripped paragraph text
 			plainText.WriteString(strippedContent)
 			plainText.WriteString("\n")
 			charOffset += utf16Len(strippedContent + "\n")
 
-			if debugMarkdown {
-				fmt.Printf("  charOffset after: %d, plainText.Len: %d\n", charOffset, plainText.Len())
-			}
-
 			// Apply inline text styles
 			for _, style := range styles {
 				textStyleReq := buildTextStyleRequest(style, startOffset, tabID)
 				if textStyleReq != nil {
-					if debugMarkdown {
-						fmt.Printf("  Style request: [%d, %d]\n",
-							textStyleReq.UpdateTextStyle.Range.StartIndex,
-							textStyleReq.UpdateTextStyle.Range.EndIndex)
-					}
 					requests = append(requests, textStyleReq)
 				}
 			}
 
-		case docsmarkdown.MDEmptyLine:
+		case MDEmptyLine:
 			// Native tables and heading styles already supply visual spacing.
 			// Emitting an adjacent source blank line would double those gaps.
-			if (i > 0 && (elements[i-1].Type == docsmarkdown.MDTable || docsmarkdown.IsHeadingElement(elements[i-1].Type))) ||
-				(i+1 < len(elements) && (elements[i+1].Type == docsmarkdown.MDTable || docsmarkdown.IsHeadingElement(elements[i+1].Type))) {
+			if (i > 0 && (elements[i-1].Type == MDTable || IsHeadingElement(elements[i-1].Type))) ||
+				(i+1 < len(elements) && (elements[i+1].Type == MDTable || IsHeadingElement(elements[i+1].Type))) {
 				continue
 			}
+
 			plainText.WriteString("\n")
 			charOffset += utf16Len("\n")
 
-		case docsmarkdown.MDTable:
+		case MDTable:
 			// Handle markdown table - save for native insertion
 			if len(el.TableCells) == 0 {
 				continue
 			}
 
 			rows := len(el.TableCells)
+
 			cols := len(el.TableCells[0])
 			if rows == 0 || cols == 0 {
 				continue
-			}
-
-			if debugMarkdown {
-				fmt.Printf("[TABLE] %d rows x %d cols at offset %d - saving for native insertion\n", rows, cols, charOffset)
 			}
 
 			// Save table data for native insertion
@@ -366,19 +315,11 @@ func MarkdownToDocsRequests(elements []docsmarkdown.MarkdownElement, baseIndex i
 		}
 	}
 
-	if debugMarkdown {
-		fmt.Printf("\n[FINAL] plainText length: %d\n", plainText.Len())
-		fmt.Printf("[FINAL] Final charOffset: %d\n", charOffset)
-		fmt.Printf("[FINAL] Total requests: %d\n", len(requests))
-		fmt.Printf("[FINAL] Total tables: %d\n", len(tables))
-		fmt.Printf("\n[FINAL] plainText content:\n%s\n[END]\n", plainText.String())
-	}
-
 	return requests, plainText.String(), tables
 }
 
 // buildTextStyleRequest creates a text style update request from a TextStyle
-func buildTextStyleRequest(style docsmarkdown.TextStyle, baseOffset int64, tabID string) *docs.Request {
+func buildTextStyleRequest(style TextStyle, baseOffset int64, tabID string) *docs.Request {
 	// Validate indices
 	if style.Start < 0 || style.End < 0 || style.End <= style.Start {
 		return nil
@@ -389,27 +330,36 @@ func buildTextStyleRequest(style docsmarkdown.TextStyle, baseOffset int64, tabID
 
 	if style.Bold {
 		textStyle.Bold = true
+
 		fields = append(fields, "bold")
 	}
+
 	if style.Italic {
 		textStyle.Italic = true
+
 		fields = append(fields, "italic")
 	}
+
 	if style.Strikethrough {
 		textStyle.Strikethrough = true
+
 		fields = append(fields, "strikethrough")
 	}
+
 	if style.Code {
 		textStyle.WeightedFontFamily = &docs.WeightedFontFamily{
 			FontFamily: "Courier New",
 			Weight:     400,
 		}
+
 		fields = append(fields, "weightedFontFamily")
 	}
+
 	if style.Link != "" {
 		textStyle.Link = &docs.Link{
 			Url: style.Link,
 		}
+
 		fields = append(fields, "link")
 	}
 
@@ -430,19 +380,19 @@ func buildTextStyleRequest(style docsmarkdown.TextStyle, baseOffset int64, tabID
 	}
 }
 
-func getHeadingStyle(elType docsmarkdown.MarkdownElementType) string {
+func getHeadingStyle(elType MarkdownElementType) string {
 	switch elType {
-	case docsmarkdown.MDHeading1:
+	case MDHeading1:
 		return "HEADING_1"
-	case docsmarkdown.MDHeading2:
+	case MDHeading2:
 		return "HEADING_2"
-	case docsmarkdown.MDHeading3:
+	case MDHeading3:
 		return "HEADING_3"
-	case docsmarkdown.MDHeading4:
+	case MDHeading4:
 		return "HEADING_4"
-	case docsmarkdown.MDHeading5:
+	case MDHeading5:
 		return "HEADING_5"
-	case docsmarkdown.MDHeading6:
+	case MDHeading6:
 		return "HEADING_6"
 	default:
 		return docsNamedStyleNormalText
