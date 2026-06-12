@@ -41,7 +41,7 @@ func (c *AnalyticsAccountsCmd) Run(ctx context.Context, flags *RootFlags) error 
 		return usage("--max must be > 0")
 	}
 
-	svc, err := newAnalyticsAdminService(ctx, account)
+	svc, err := analyticsAdminService(ctx, account)
 	if err != nil {
 		return err
 	}
@@ -142,7 +142,7 @@ func (c *AnalyticsReportCmd) Run(ctx context.Context, flags *RootFlags) error {
 		return usage("--offset must be >= 0")
 	}
 
-	svc, err := newAnalyticsDataService(ctx, account)
+	svc, err := analyticsDataService(ctx, account)
 	if err != nil {
 		return err
 	}

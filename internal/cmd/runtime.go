@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"os"
 
+	analyticsadmin "google.golang.org/api/analyticsadmin/v1beta"
+	analyticsdata "google.golang.org/api/analyticsdata/v1beta"
 	"google.golang.org/api/calendar/v3"
 	"google.golang.org/api/chat/v1"
 	"google.golang.org/api/classroom/v1"
@@ -15,6 +17,7 @@ import (
 	formsapi "google.golang.org/api/forms/v1"
 	"google.golang.org/api/gmail/v1"
 	"google.golang.org/api/people/v1"
+	searchconsoleapi "google.golang.org/api/searchconsole/v1"
 	"google.golang.org/api/sheets/v4"
 	"google.golang.org/api/slides/v1"
 	"google.golang.org/api/tasks/v1"
@@ -32,11 +35,13 @@ func newDefaultRuntime() *app.Runtime {
 			Err: os.Stderr,
 		},
 		Services: app.Services{
-			Calendar:      googleapi.NewCalendar,
-			Chat:          googleapi.NewChat,
-			Classroom:     googleapi.NewClassroom,
-			CloudIdentity: newCloudIdentityService,
-			Docs:          googleapi.NewDocs,
+			AnalyticsAdmin: newAnalyticsAdminService,
+			AnalyticsData:  newAnalyticsDataService,
+			Calendar:       googleapi.NewCalendar,
+			Chat:           googleapi.NewChat,
+			Classroom:      googleapi.NewClassroom,
+			CloudIdentity:  newCloudIdentityService,
+			Docs:           googleapi.NewDocs,
 			DocsHTTP: func(ctx context.Context, account string) (*http.Client, error) {
 				return googleapi.NewHTTPClient(ctx, googleauth.ServiceDocs, account)
 			},
@@ -46,6 +51,7 @@ func newDefaultRuntime() *app.Runtime {
 			PeopleContacts:  googleapi.NewPeopleContacts,
 			PeopleDirectory: googleapi.NewPeopleDirectory,
 			PeopleOther:     googleapi.NewPeopleOtherContacts,
+			SearchConsole:   newSearchConsoleService,
 			Sheets:          googleapi.NewSheets,
 			Slides:          googleapi.NewSlides,
 			Tasks:           googleapi.NewTasks,
@@ -70,6 +76,12 @@ func normalizedRuntime(runtime *app.Runtime) *app.Runtime {
 	}
 	if normalized.IO.Err == nil {
 		normalized.IO.Err = defaults.IO.Err
+	}
+	if normalized.Services.AnalyticsAdmin == nil {
+		normalized.Services.AnalyticsAdmin = defaults.Services.AnalyticsAdmin
+	}
+	if normalized.Services.AnalyticsData == nil {
+		normalized.Services.AnalyticsData = defaults.Services.AnalyticsData
 	}
 	if normalized.Services.Calendar == nil {
 		normalized.Services.Calendar = defaults.Services.Calendar
@@ -106,6 +118,9 @@ func normalizedRuntime(runtime *app.Runtime) *app.Runtime {
 	}
 	if normalized.Services.PeopleOther == nil {
 		normalized.Services.PeopleOther = defaults.Services.PeopleOther
+	}
+	if normalized.Services.SearchConsole == nil {
+		normalized.Services.SearchConsole = defaults.Services.SearchConsole
 	}
 	if normalized.Services.Sheets == nil {
 		normalized.Services.Sheets = defaults.Services.Sheets
@@ -150,6 +165,20 @@ func stdoutWriter(ctx context.Context) io.Writer {
 
 func stderrWriter(ctx context.Context) io.Writer {
 	return commandIO(ctx).Err
+}
+
+func analyticsAdminService(ctx context.Context, account string) (*analyticsadmin.Service, error) {
+	if runtime, ok := app.FromContext(ctx); ok && runtime.Services.AnalyticsAdmin != nil {
+		return runtime.Services.AnalyticsAdmin(ctx, account)
+	}
+	return newAnalyticsAdminService(ctx, account)
+}
+
+func analyticsDataService(ctx context.Context, account string) (*analyticsdata.Service, error) {
+	if runtime, ok := app.FromContext(ctx); ok && runtime.Services.AnalyticsData != nil {
+		return runtime.Services.AnalyticsData(ctx, account)
+	}
+	return newAnalyticsDataService(ctx, account)
 }
 
 func calendarService(ctx context.Context, account string) (*calendar.Service, error) {
@@ -206,6 +235,13 @@ func formsService(ctx context.Context, account string) (*formsapi.Service, error
 		return runtime.Services.Forms(ctx, account)
 	}
 	return googleapi.NewForms(ctx, account)
+}
+
+func searchConsoleService(ctx context.Context, account string) (*searchconsoleapi.Service, error) {
+	if runtime, ok := app.FromContext(ctx); ok && runtime.Services.SearchConsole != nil {
+		return runtime.Services.SearchConsole(ctx, account)
+	}
+	return newSearchConsoleService(ctx, account)
 }
 
 func gmailService(ctx context.Context, account string) (*gmail.Service, error) {

@@ -56,7 +56,7 @@ func (c *SearchConsoleSitesListCmd) Run(ctx context.Context, flags *RootFlags) e
 		return err
 	}
 
-	svc, err := newSearchConsoleService(ctx, account)
+	svc, err := searchConsoleService(ctx, account)
 	if err != nil {
 		return err
 	}
@@ -111,7 +111,7 @@ func (c *SearchConsoleSitesGetCmd) Run(ctx context.Context, flags *RootFlags) er
 		return err
 	}
 
-	svc, err := newSearchConsoleService(ctx, account)
+	svc, err := searchConsoleService(ctx, account)
 	if err != nil {
 		return err
 	}
@@ -169,7 +169,7 @@ func (c *SearchConsoleQueryCmd) Run(ctx context.Context, flags *RootFlags) error
 		return err
 	}
 
-	svc, err := newSearchConsoleService(ctx, account)
+	svc, err := searchConsoleService(ctx, account)
 	if err != nil {
 		return err
 	}
@@ -334,7 +334,7 @@ func (c *SearchConsoleSitemapsListCmd) Run(ctx context.Context, flags *RootFlags
 		return err
 	}
 
-	svc, err := newSearchConsoleService(ctx, account)
+	svc, err := searchConsoleService(ctx, account)
 	if err != nil {
 		return err
 	}
@@ -407,7 +407,7 @@ func (c *SearchConsoleSitemapsGetCmd) Run(ctx context.Context, flags *RootFlags)
 		return err
 	}
 
-	svc, err := newSearchConsoleService(ctx, account)
+	svc, err := searchConsoleService(ctx, account)
 	if err != nil {
 		return err
 	}
@@ -465,7 +465,7 @@ func (c *SearchConsoleSitemapsSubmitCmd) Run(ctx context.Context, flags *RootFla
 		return err
 	}
 
-	svc, err := newSearchConsoleService(ctx, account)
+	svc, err := searchConsoleService(ctx, account)
 	if err != nil {
 		return err
 	}
@@ -511,7 +511,7 @@ func (c *SearchConsoleSitemapsDeleteCmd) Run(ctx context.Context, flags *RootFla
 		return err
 	}
 
-	svc, err := newSearchConsoleService(ctx, account)
+	svc, err := searchConsoleService(ctx, account)
 	if err != nil {
 		return err
 	}
