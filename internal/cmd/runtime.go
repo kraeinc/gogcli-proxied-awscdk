@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"time"
 
 	admin "google.golang.org/api/admin/directory/v1"
 	analyticsadmin "google.golang.org/api/analyticsadmin/v1beta"
@@ -275,6 +276,13 @@ func startAuthManageServer(ctx context.Context, options googleauth.ManageServerO
 		return runtime.Auth.StartManageServer(ctx, options)
 	}
 	return googleauth.StartManageServer(ctx, options)
+}
+
+func checkAuthRefreshToken(ctx context.Context, client, refreshToken string, scopes []string, timeout time.Duration) error {
+	if runtime, ok := app.FromContext(ctx); ok && runtime.Auth.CheckRefreshToken != nil {
+		return runtime.Auth.CheckRefreshToken(ctx, client, refreshToken, scopes, timeout)
+	}
+	return googleauth.CheckRefreshToken(ctx, client, refreshToken, scopes, timeout)
 }
 
 func adminDirectoryService(ctx context.Context, account string) (*admin.Service, error) {

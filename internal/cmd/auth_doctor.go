@@ -115,7 +115,7 @@ func (c *AuthDoctorCmd) Run(ctx context.Context, _ *RootFlags) error {
 
 	if c.Check {
 		for _, tok := range tokens {
-			err := checkRefreshToken(ctx, tok.Client, tok.RefreshToken, tok.Scopes, c.Timeout)
+			err := checkAuthRefreshToken(ctx, tok.Client, tok.RefreshToken, tok.Scopes, c.Timeout)
 			if err == nil {
 				add(authDoctorTokenCheckName("refresh", tok.Client, tok.Email), doctorOK, "refresh token exchange succeeded", "")
 				continue

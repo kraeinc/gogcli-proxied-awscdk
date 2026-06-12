@@ -11,7 +11,6 @@ import (
 var (
 	openSecretsStore        = secrets.OpenDefault
 	authorizeGoogle         = googleauth.Authorize
-	checkRefreshToken       = googleauth.CheckRefreshToken
 	ensureKeychainAccess    = secrets.EnsureKeychainAccess
 	fetchAuthorizedIdentity = googleauth.IdentityForRefreshToken
 	manualAuthURL           = googleauth.ManualAuthURL

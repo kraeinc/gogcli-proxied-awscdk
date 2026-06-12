@@ -224,7 +224,7 @@ func (c *AuthListCmd) annotateAuthListCheck(ctx context.Context, e authListEntry
 		it.Valid = &valid
 		it.Error = "service account (not checked)"
 	default:
-		err := checkRefreshToken(ctx, e.Token.Client, e.Token.RefreshToken, e.Token.Scopes, c.Timeout)
+		err := checkAuthRefreshToken(ctx, e.Token.Client, e.Token.RefreshToken, e.Token.Scopes, c.Timeout)
 		valid := err == nil
 		it.Valid = &valid
 		if err != nil {
@@ -267,7 +267,7 @@ func (c *AuthListCmd) writeAuthListCheckRow(ctx context.Context, u *ui.UI, e aut
 	case e.Token == nil:
 		u.Out().Linef("%s\t%s\t%s\t%s\t%t\t%s\t%s", e.Email, client, servicesCSV, created, true, "service account (not checked)", e.authType())
 	default:
-		err := checkRefreshToken(ctx, e.Token.Client, e.Token.RefreshToken, e.Token.Scopes, c.Timeout)
+		err := checkAuthRefreshToken(ctx, e.Token.Client, e.Token.RefreshToken, e.Token.Scopes, c.Timeout)
 		valid := err == nil
 		msg := ""
 		if err != nil {
