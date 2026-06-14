@@ -17,6 +17,8 @@ import (
 	"google.golang.org/api/gmail/v1"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/idtoken"
+
+	"github.com/steipete/gogcli/internal/gmailwatch"
 )
 
 var errNoNewMessages = errors.New("no new messages")
@@ -566,18 +568,7 @@ func pathMatches(expected, actual string) bool {
 // updateStateAfterHistory updates the stored state with the new history ID and push message ID.
 // This is a common operation after processing history, whether messages were found or not.
 func updateStateAfterHistory(state *gmailWatchState, historyID, pushMessageID string) error {
-	shouldUpdate, err := shouldUpdateHistoryID(state.HistoryID, historyID)
-	if err != nil {
-		return err
-	}
-	if shouldUpdate {
-		state.HistoryID = historyID
-	}
-	if pushMessageID != "" {
-		state.LastPushMessageID = pushMessageID
-	}
-	state.UpdatedAtMs = time.Now().UnixMilli()
-	return nil
+	return gmailwatch.AdvanceHistory(state, historyID, pushMessageID, time.Now())
 }
 
 func isStaleHistoryError(err error) bool {

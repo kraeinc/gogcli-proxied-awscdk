@@ -442,7 +442,7 @@ func TestGmailWatchServer_HandlePush_FetchDelayCanceledContext(t *testing.T) {
 	var serviceCalls int
 	server := &gmailWatchServer{
 		cfg:   gmailWatchServeConfig{Account: "a@b.com", FetchDelay: time.Second},
-		store: &gmailWatchStore{state: gmailWatchState{HistoryID: "100"}},
+		store: newMemoryGmailWatchTestStore(gmailWatchState{HistoryID: "100"}),
 		newService: func(context.Context, string) (*gmail.Service, error) {
 			serviceCalls++
 			return nil, errors.New("unexpected newService call")

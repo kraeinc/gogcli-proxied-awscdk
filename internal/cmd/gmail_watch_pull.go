@@ -14,6 +14,7 @@ import (
 	"google.golang.org/api/gmail/v1"
 
 	"github.com/steipete/gogcli/internal/authclient"
+	"github.com/steipete/gogcli/internal/gmailwatch"
 	"github.com/steipete/gogcli/internal/ui"
 )
 
@@ -333,14 +334,8 @@ func (s *gmailWatchServer) restoreWatchProgressForRetry(before gmailWatchState, 
 		return nil
 	}
 	return s.store.Update(func(state *gmailWatchState) error {
-		if state.HistoryID != historyID {
-			return nil
-		}
-		if pushMessageID != "" && state.LastPushMessageID != pushMessageID {
-			return nil
-		}
-		state.HistoryID = before.HistoryID
-		state.LastPushMessageID = before.LastPushMessageID
+		gmailwatch.RestoreProgress(state, before, historyID, pushMessageID)
+
 		return nil
 	})
 }

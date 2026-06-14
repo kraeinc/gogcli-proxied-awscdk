@@ -58,7 +58,7 @@ func TestGmailWatchServer_SendHook_TransportError(t *testing.T) {
 func TestGmailWatchServer_ServeHTTP_HandlePushError(t *testing.T) {
 	server := &gmailWatchServer{
 		cfg:   gmailWatchServeConfig{Path: "/hook", SharedToken: "tok"},
-		store: &gmailWatchStore{state: gmailWatchState{HistoryID: "bad"}},
+		store: newMemoryGmailWatchTestStore(gmailWatchState{HistoryID: "bad"}),
 		logf:  func(string, ...any) {},
 		warnf: func(string, ...any) {},
 	}
@@ -222,7 +222,7 @@ func TestGmailWatchServer_ServeHTTP_HookSuccess(t *testing.T) {
 }
 
 func TestGmailWatchServer_HandlePush_NewServiceError(t *testing.T) {
-	store := &gmailWatchStore{state: gmailWatchState{HistoryID: "100"}}
+	store := newMemoryGmailWatchTestStore(gmailWatchState{HistoryID: "100"})
 	server := &gmailWatchServer{
 		cfg:   gmailWatchServeConfig{Account: "a@b.com"},
 		store: store,
@@ -239,7 +239,7 @@ func TestGmailWatchServer_HandlePush_NewServiceError(t *testing.T) {
 }
 
 func TestGmailWatchServer_HandlePush_HistoryError(t *testing.T) {
-	store := &gmailWatchStore{state: gmailWatchState{HistoryID: "100"}}
+	store := newMemoryGmailWatchTestStore(gmailWatchState{HistoryID: "100"})
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.Path, "/gmail/v1/users/me/history") {
@@ -279,7 +279,7 @@ func TestGmailWatchServer_HandlePush_HistoryError(t *testing.T) {
 func TestGmailWatchServer_HandlePush_StaleHistory(t *testing.T) {
 	server := &gmailWatchServer{
 		cfg:   gmailWatchServeConfig{Account: "a@b.com"},
-		store: &gmailWatchStore{state: gmailWatchState{HistoryID: "100"}},
+		store: newMemoryGmailWatchTestStore(gmailWatchState{HistoryID: "100"}),
 		logf:  func(string, ...any) {},
 		warnf: func(string, ...any) {},
 	}
@@ -290,7 +290,7 @@ func TestGmailWatchServer_HandlePush_StaleHistory(t *testing.T) {
 }
 
 func TestGmailWatchServer_HandlePush_FetchMessagesError(t *testing.T) {
-	store := &gmailWatchStore{state: gmailWatchState{HistoryID: "100"}}
+	store := newMemoryGmailWatchTestStore(gmailWatchState{HistoryID: "100"})
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
@@ -335,7 +335,7 @@ func TestGmailWatchServer_HandlePush_FetchMessagesError(t *testing.T) {
 }
 
 func TestGmailWatchServer_HandlePush_UpdateError(t *testing.T) {
-	store := &gmailWatchStore{state: gmailWatchState{HistoryID: "100"}}
+	store := newMemoryGmailWatchTestStore(gmailWatchState{HistoryID: "100"})
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
@@ -389,7 +389,7 @@ func TestGmailWatchServer_HandlePush_UpdateError(t *testing.T) {
 }
 
 func TestGmailWatchServer_HandlePush_UpdateError_InvalidHistoryID(t *testing.T) {
-	store := &gmailWatchStore{state: gmailWatchState{HistoryID: "100"}}
+	store := newMemoryGmailWatchTestStore(gmailWatchState{HistoryID: "100"})
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.Path, "/gmail/v1/users/me/history") {
@@ -455,7 +455,7 @@ func TestGmailWatchServer_ResyncHistory_ListError(t *testing.T) {
 
 	server := &gmailWatchServer{
 		cfg:   gmailWatchServeConfig{ResyncMax: 10},
-		store: &gmailWatchStore{},
+		store: newEmptyGmailWatchTestStore(),
 		logf:  func(string, ...any) {},
 		warnf: func(string, ...any) {},
 	}
@@ -493,7 +493,7 @@ func TestGmailWatchServer_ResyncHistory_FetchMessagesError(t *testing.T) {
 
 	server := &gmailWatchServer{
 		cfg:   gmailWatchServeConfig{ResyncMax: 10},
-		store: &gmailWatchStore{},
+		store: newEmptyGmailWatchTestStore(),
 		logf:  func(string, ...any) {},
 		warnf: func(string, ...any) {},
 	}
@@ -536,7 +536,7 @@ func TestGmailWatchServer_ResyncHistory_UpdateError_InvalidHistoryID(t *testing.
 
 	server := &gmailWatchServer{
 		cfg:   gmailWatchServeConfig{Account: "a@b.com", ResyncMax: 10},
-		store: &gmailWatchStore{state: gmailWatchState{HistoryID: "100"}},
+		store: newMemoryGmailWatchTestStore(gmailWatchState{HistoryID: "100"}),
 		logf:  func(string, ...any) {},
 		warnf: func(string, ...any) {},
 	}

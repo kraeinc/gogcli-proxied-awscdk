@@ -17,30 +17,6 @@ const (
 	defaultHookRequestTimeoutSec = 10
 )
 
-type gmailWatchHook struct {
-	URL         string `json:"url"`
-	Token       string `json:"token,omitempty"`
-	IncludeBody bool   `json:"includeBody,omitempty"`
-	MaxBytes    int    `json:"maxBytes,omitempty"`
-}
-
-type gmailWatchState struct {
-	Account                string          `json:"account"`
-	Topic                  string          `json:"topic"`
-	Labels                 []string        `json:"labels,omitempty"`
-	HistoryID              string          `json:"historyId"`
-	ExpirationMs           int64           `json:"expirationMs,omitempty"`
-	ProviderExpirationMs   int64           `json:"providerExpirationMs,omitempty"`
-	RenewAfterMs           int64           `json:"renewAfterMs,omitempty"`
-	UpdatedAtMs            int64           `json:"updatedAtMs,omitempty"`
-	Hook                   *gmailWatchHook `json:"hook,omitempty"`
-	LastDeliveryStatus     string          `json:"lastDeliveryStatus,omitempty"`
-	LastDeliveryAtMs       int64           `json:"lastDeliveryAtMs,omitempty"`
-	LastDeliveryStatusNote string          `json:"lastDeliveryStatusNote,omitempty"`
-	LastPushMessageID      string          `json:"lastPushMessageId,omitempty"`
-	RateLimitedUntilMs     int64           `json:"rateLimitedUntilMs,omitempty"`
-}
-
 type gmailWatchServeConfig struct {
 	Account       string
 	Bind          string

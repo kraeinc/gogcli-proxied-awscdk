@@ -416,7 +416,7 @@ func newPullProcessorTestServer(t *testing.T, historyStatus int) (*gmailWatchSer
 	cleanup := func() {
 		gmailServer.Close()
 		hookServer.Close()
-		_ = os.Remove(store.path)
+		_ = os.Remove(store.Path())
 	}
 	return processor, hookServer, cleanup
 }
