@@ -35,6 +35,7 @@ gog slides (slide) <command> [flags]
 - [gog slides replace-slide](gog-slides-replace-slide.md) - Replace an existing slide image from a local file or public URL
 - [gog slides replace-text](gog-slides-replace-text.md) - Find-and-replace text in an explicit object, slide, or presentation scope
 - [gog slides style-text](gog-slides-style-text.md) - Apply range-scoped text styling to one page element
+- [gog slides table](gog-slides-table.md) - Create and update native tables
 - [gog slides thumbnail](gog-slides-thumbnail.md) - Get or download a rendered thumbnail for a slide
 - [gog slides update-notes](gog-slides-update-notes.md) - Update speaker notes on an existing slide
 
