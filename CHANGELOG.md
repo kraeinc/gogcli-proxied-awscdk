@@ -16,6 +16,10 @@
 - Slides: add native themed slide creation, duplication, and reordering with predefined or exact custom layouts and explicit zero-based positions. (#826, #833) — thanks @sebsnyk.
 - Slides: add native shape and line creation plus element transforms, fill/outline styling, z-order, grouping, alt text, and guarded deletion. (#826) — thanks @sebsnyk.
 
+### Changed
+
+- Docs: expose all current Slides feature guides in the documentation site, enforce their coverage, and document table sizing and styling constraints.
+
 ### Fixed
 
 - Docs: preserve the matched paragraph's list or heading structure on the first plain paragraph of a block Markdown replacement. (#838) — thanks @sebsnyk.

@@ -65,6 +65,9 @@ gog slides table column size <presentationId> <tableId> --col 0 --width 120
 
 Row height is a minimum; Slides may render a taller row to fit its content.
 Column width must be at least 32 points, matching the provider minimum.
+Sizing and styling commands fetch current provider dimensions, reject invalid
+coordinates or ranges, and submit writes against the fetched presentation
+revision.
 
 Style one cell's fill, vertical content alignment, and text in one atomic batch:
 
@@ -74,8 +77,10 @@ gog slides table cell style <presentationId> <tableId> --row 0 --col 0 \
   --bold --text-color '#ffffff' --size 18 --font Cambria
 ```
 
-Text options default to all text in the cell. Pass `--range start:end` to style
-one UTF-16 text range. `--fill-transparent` removes the cell fill.
+`--content-align` accepts `TOP`, `MIDDLE`, or `BOTTOM`. Text options default to
+all text in the cell; pass `--range start:end` to style one UTF-16 text range.
+The range affects only text styling, while fill and alignment still apply to
+the whole cell. `--fill-color` and `--fill-transparent` are mutually exclusive.
 
 Style borders for a rectangular cell range:
 
@@ -85,5 +90,7 @@ gog slides table border style <presentationId> <tableId> \
   --border-color '#ea4335' --weight 2 --dash DASH
 ```
 
-`--position` accepts `ALL`, `OUTER`, `INNER`, individual sides, or inner
-horizontal/vertical borders. `--transparent` hides the selected borders.
+`--position` accepts `ALL`, `OUTER`, `INNER`, `TOP`, `BOTTOM`, `LEFT`, `RIGHT`,
+`INNER_HORIZONTAL`, or `INNER_VERTICAL`. Dash styles are `SOLID`, `DOT`,
+`DASH`, `DASH_DOT`, `LONG_DASH`, and `LONG_DASH_DOT`. Border weight must be
+greater than zero. `--border-color` and `--transparent` are mutually exclusive.
