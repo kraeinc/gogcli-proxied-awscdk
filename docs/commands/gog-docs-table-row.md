@@ -2,7 +2,7 @@
 
 > Generated from `gog schema --json`. Do not edit this page by hand; run `make docs-commands`.
 
-Insert, delete, or style native table rows
+Insert, delete, style, or pin native table rows
 
 ## Usage
 
@@ -18,6 +18,7 @@ gog docs (doc) table-row <command>
 
 - [gog docs table-row delete](gog-docs-table-row-delete.md) - Delete a native table row
 - [gog docs table-row insert](gog-docs-table-row-insert.md) - Insert a native table row
+- [gog docs table-row pin-header](gog-docs-table-row-pin-header.md) - Pin or unpin leading table header rows
 - [gog docs table-row style](gog-docs-table-row-style.md) - Set native table row height and overflow styles
 
 ## Flags
