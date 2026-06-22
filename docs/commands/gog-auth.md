@@ -28,6 +28,7 @@ gog auth <command> [flags]
 - [gog auth remove](gog-auth-remove.md) - Remove a stored refresh token
 - [gog auth service-account](gog-auth-service-account.md) - Configure service account (Workspace only; domain-wide delegation)
 - [gog auth services](gog-auth-services.md) - List supported auth services and scopes
+- [gog auth setup](gog-auth-setup.md) - Guide Google Cloud, OAuth client, and account setup
 - [gog auth status](gog-auth-status.md) - Show auth configuration and keyring backend
 - [gog auth tokens](gog-auth-tokens.md) - Manage stored refresh tokens
 
