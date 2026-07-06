@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.32.1 - Unreleased
+## 0.33.0 - 2026-07-06
 
 - Sheets: add `sheets filter set` for creating basic filters, with guarded replacement of an existing sheet filter. (#902)
 - Sheets: add gradient conditional formats through `--gradient-rule-json`, with strict nested color validation and rejection of unsupported alpha. (#901)
