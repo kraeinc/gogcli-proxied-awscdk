@@ -1,5 +1,7 @@
 # Changelog
 
+## 0.34.1 - Unreleased
+
 ## 0.34.0 - 2026-07-11
 
 - Calendar: add `--timezone` / `--tz` display overrides to `calendar events` and `calendar event`, including uniform multi-calendar output without changing range parsing. (#908) — thanks @bxxd.
