@@ -2,6 +2,7 @@
 
 ## 0.33.2 - Unreleased
 
+- Calendar: add `--timezone` / `--tz` display overrides to `calendar events` and `calendar event`, including uniform multi-calendar output without changing range parsing. (#908) — thanks @bxxd.
 - Calendar: render event-local fields in the event's own timezone when present, falling back to the containing calendar timezone. (#905) — thanks @Hilo-Hilo.
 - Docs: add opt-in smart-chip rendering to `docs cat --chips` and structured person, date, and rich-link metadata to JSON output while preserving default text output. (#907, #909) — thanks @TurboTheTurtle.
 

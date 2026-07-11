@@ -44,14 +44,23 @@ func wrapEventsWithDays(events []*calendar.Event) []*eventWithDays {
 }
 
 func wrapEventWithDaysWithTimezone(event *calendar.Event, calendarTimezone string, loc *time.Location) *eventWithDays {
+	return wrapEventWithDaysWithTimezoneOverride(event, calendarTimezone, loc, false)
+}
+
+func wrapEventWithDaysWithTimezoneOverride(event *calendar.Event, calendarTimezone string, loc *time.Location, forceDisplayTimezone bool) *eventWithDays {
 	if event == nil {
 		return nil
 	}
 	evTimezone := eventTimezone(event)
-	fallbackTimezone, fallbackLoc := calendarTimezone, loc
-	calendarTimezone = resolveEventTimezone(event, calendarTimezone, loc)
-	startLoc := resolveEventDateTimeTimezone(event.Start, fallbackTimezone, fallbackLoc)
-	endLoc := resolveEventDateTimeTimezone(event.End, fallbackTimezone, fallbackLoc)
+	startLoc, endLoc := loc, loc
+	if forceDisplayTimezone {
+		calendarTimezone = strings.TrimSpace(calendarTimezone)
+	} else {
+		fallbackTimezone, fallbackLoc := calendarTimezone, loc
+		calendarTimezone = resolveEventTimezone(event, calendarTimezone, loc)
+		startLoc = resolveEventDateTimeTimezone(event.Start, fallbackTimezone, fallbackLoc)
+		endLoc = resolveEventDateTimeTimezone(event.End, fallbackTimezone, fallbackLoc)
+	}
 	startDay := dayOfWeekFromEventDateTime(event.Start, startLoc)
 	endDay := dayOfWeekFromEventDateTime(event.End, endLoc)
 

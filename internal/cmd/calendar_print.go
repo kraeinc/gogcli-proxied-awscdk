@@ -13,14 +13,23 @@ import (
 const calendarEntryPointTypeVideo = "video"
 
 func printCalendarEventWithTimezone(u *ui.UI, event *calendar.Event, calendarTimezone string, loc *time.Location) {
+	printCalendarEventWithTimezoneOverride(u, event, calendarTimezone, loc, false)
+}
+
+func printCalendarEventWithTimezoneOverride(u *ui.UI, event *calendar.Event, calendarTimezone string, loc *time.Location, forceDisplayTimezone bool) {
 	if u == nil || event == nil {
 		return
 	}
 	eventTimezone := eventTimezone(event)
-	fallbackTimezone, fallbackLoc := calendarTimezone, loc
-	calendarTimezone = resolveEventTimezone(event, calendarTimezone, loc)
-	startLoc := resolveEventDateTimeTimezone(event.Start, fallbackTimezone, fallbackLoc)
-	endLoc := resolveEventDateTimeTimezone(event.End, fallbackTimezone, fallbackLoc)
+	startLoc, endLoc := loc, loc
+	if forceDisplayTimezone {
+		calendarTimezone = strings.TrimSpace(calendarTimezone)
+	} else {
+		fallbackTimezone, fallbackLoc := calendarTimezone, loc
+		calendarTimezone = resolveEventTimezone(event, calendarTimezone, loc)
+		startLoc = resolveEventDateTimeTimezone(event.Start, fallbackTimezone, fallbackLoc)
+		endLoc = resolveEventDateTimeTimezone(event.End, fallbackTimezone, fallbackLoc)
+	}
 
 	u.Out().Linef("id\t%s", event.Id)
 	if event.RecurringEventId != "" {

@@ -477,3 +477,27 @@ func TestWrapEventWithDaysResolvesEndpointTimezonesIndependently(t *testing.T) {
 		t.Fatalf("unexpected endpoint-local weekdays: start=%q end=%q", wrapped.StartDayOfWeek, wrapped.EndDayOfWeek)
 	}
 }
+
+func TestWrapEventWithDaysExplicitTimezoneOverrideWins(t *testing.T) {
+	t.Parallel()
+
+	event := &calendar.Event{
+		Start: &calendar.EventDateTime{DateTime: "2026-07-08T02:00:00Z", TimeZone: "Asia/Seoul"},
+		End:   &calendar.EventDateTime{DateTime: "2026-07-08T03:00:00Z", TimeZone: "Asia/Seoul"},
+	}
+	override, err := time.LoadLocation("America/New_York")
+	if err != nil {
+		t.Fatalf("LoadLocation: %v", err)
+	}
+
+	wrapped := wrapEventWithDaysWithTimezoneOverride(event, "America/New_York", override, true)
+	if wrapped.Timezone != "America/New_York" || wrapped.EventTimezone != "Asia/Seoul" {
+		t.Fatalf("unexpected timezone fields: timezone=%q eventTimezone=%q", wrapped.Timezone, wrapped.EventTimezone)
+	}
+	if wrapped.StartLocal != "2026-07-07T22:00:00-04:00" || wrapped.EndLocal != "2026-07-07T23:00:00-04:00" {
+		t.Fatalf("unexpected override-local fields: start=%q end=%q", wrapped.StartLocal, wrapped.EndLocal)
+	}
+	if wrapped.StartDayOfWeek != "Tuesday" || wrapped.EndDayOfWeek != "Tuesday" {
+		t.Fatalf("unexpected override-local weekdays: start=%q end=%q", wrapped.StartDayOfWeek, wrapped.EndDayOfWeek)
+	}
+}
