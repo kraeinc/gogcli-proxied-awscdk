@@ -536,7 +536,7 @@ func writeDraftResult(ctx context.Context, u *ui.UI, draft *gmail.Draft, threadi
 		if len(attachments) > 0 {
 			result["attachments"] = attachments
 		}
-		return outfmt.WriteJSON(ctx, stdoutWriter(ctx), result)
+		return outfmt.WriteJSON(ctx, stdoutWriter(ctx), outfmt.PrimaryResult(result))
 	}
 	u.Out().Linef("draft_id\t%s", draft.Id)
 	if draft.Message != nil && draft.Message.Id != "" {
