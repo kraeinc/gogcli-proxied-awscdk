@@ -24,6 +24,7 @@ gog gmail (mail,email) <command> [flags]
 - [gog gmail forward](gog-gmail-forward.md) - Forward a message to new recipients
 - [gog gmail get](gog-gmail-get.md) - Get a message (full|metadata|raw)
 - [gog gmail history](gog-gmail-history.md) - Gmail history
+- [gog gmail import](gog-gmail-import.md) - Import an RFC822/EML message into Gmail
 - [gog gmail labels](gog-gmail-labels.md) - Label operations
 - [gog gmail mark-read](gog-gmail-mark-read.md) - Mark messages as read
 - [gog gmail messages](gog-gmail-messages.md) - Message operations
