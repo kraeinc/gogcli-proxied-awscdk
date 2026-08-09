@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Gmail: allow `GOG_GMAIL_AUTO_FROM_ADDRESSED_ALIAS` to enable the existing addressed-alias sender policy for replies and reply-context drafts. (#964) — thanks @ronny-rentner.
 - Gmail: add opt-in compact 0-based attachment references across search, message, thread, draft, and download workflows. (#963) — thanks @ronny-rentner.
 - Gmail: add opt-in attachment metadata to message search in JSON and text output without rendering decoded bodies. (#962) — thanks @ronny-rentner.
 - Security: redact credentials embedded in Gmail watch hook URLs, including userinfo, path, query, and fragment components, unless `--show-secrets` is set. (#960) — thanks @bunlongheng.
