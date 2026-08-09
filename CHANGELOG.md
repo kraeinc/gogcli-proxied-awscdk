@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Docs: add opt-in `--locate` and `--tab` to `docs comments list`, resolving all comment locations from one shared document fetch. (#961, #965) — thanks @ryo-touch.
 - Gmail: allow `GOG_GMAIL_AUTO_FROM_ADDRESSED_ALIAS` to enable the existing addressed-alias sender policy for replies and reply-context drafts. (#964) — thanks @ronny-rentner.
 - Gmail: add opt-in compact 0-based attachment references across search, message, thread, draft, and download workflows. (#963) — thanks @ronny-rentner.
 - Gmail: add opt-in attachment metadata to message search in JSON and text output without rendering decoded bodies. (#962) — thanks @ronny-rentner.
