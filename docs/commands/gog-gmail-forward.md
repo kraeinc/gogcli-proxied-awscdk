@@ -7,7 +7,7 @@ Forward a message to new recipients
 ## Usage
 
 ```bash
-gog gmail (mail,email) forward (fwd) --to=STRING <messageId> [flags]
+gog gmail (mail,email) forward (fwd) <messageId> [flags]
 ```
 
 ## Parent
@@ -42,7 +42,7 @@ gog gmail (mail,email) forward (fwd) --to=STRING <messageId> [flags]
 | `--results-only` | `bool` |  | In JSON mode, emit only the primary result (drops envelope fields like nextPageToken) |
 | `--select`<br>`--pick`<br>`--project` | `string` |  | In JSON mode, select comma-separated fields (best-effort; supports dot paths). Desire path: use --fields for most commands. |
 | `--skip-attachments` | `bool` |  | Do not include original attachments |
-| `--to` | `string` |  | Recipients (comma-separated; required) |
+| `--to` | `string` |  | Recipients (comma-separated; required when sending, optional when saving a draft) |
 | `-v`<br>`--verbose` | `bool` |  | Enable verbose logging |
 | `--version` | `kong.VersionFlag` |  | Print version and exit |
 | `--wrap-untrusted` | `bool` | false | In JSON/raw output, wrap fetched text fields in external untrusted-content markers |
