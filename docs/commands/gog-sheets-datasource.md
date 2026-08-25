@@ -21,6 +21,7 @@ gog sheets (sheet) datasource (data-source,data-sources,connected-sheets) <comma
 - [gog sheets datasource list](gog-sheets-datasource-list.md) - List Connected Sheets data sources
 - [gog sheets datasource refresh](gog-sheets-datasource-refresh.md) - Refresh one Connected Sheets data source
 - [gog sheets datasource table](gog-sheets-datasource-table.md) - Inspect Connected Sheets data-source tables (extracts)
+- [gog sheets datasource update](gog-sheets-datasource-update.md) - Update one BigQuery Connected Sheets data source
 
 ## Flags
 
