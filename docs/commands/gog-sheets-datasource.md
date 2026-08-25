@@ -2,7 +2,7 @@
 
 > Generated from `gog schema --json`. Do not edit this page by hand; run `make docs-commands`.
 
-Inspect Connected Sheets data sources and extracts
+Manage Connected Sheets data sources and extracts
 
 ## Usage
 
@@ -18,6 +18,7 @@ gog sheets (sheet) datasource (data-source,data-sources,connected-sheets) <comma
 
 - [gog sheets datasource describe](gog-sheets-datasource-describe.md) - Describe a Connected Sheets data source
 - [gog sheets datasource list](gog-sheets-datasource-list.md) - List Connected Sheets data sources
+- [gog sheets datasource refresh](gog-sheets-datasource-refresh.md) - Refresh one Connected Sheets data source
 - [gog sheets datasource table](gog-sheets-datasource-table.md) - Inspect Connected Sheets data-source tables (extracts)
 
 ## Flags
