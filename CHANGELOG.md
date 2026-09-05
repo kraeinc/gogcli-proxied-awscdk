@@ -10,6 +10,7 @@
 - Drive and Contacts: stop tree, inventory, disk-usage, and contact-dedupe scans on repeated page tokens before emitting a partial report or applying contact changes. (#1083, #1085, #1087) — thanks @SebTardif.
 - Docs: stop open-comment scans when Drive repeats a page token, preserving first-open-page results. (#1087) — thanks @SebTardif.
 - Dependencies: refresh Google API support modules, tracking worker tooling and Undici, pnpm, and the Pages deployment action while retaining Go 1.26 compatibility.
+- MCP: update the protocol SDK to 1.0 while preserving existing stdio clients.
 
 ## 0.39.0 - 2026-09-03
 
