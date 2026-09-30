@@ -26,9 +26,9 @@ class CalendarContracts(unittest.TestCase):
         self.service.save_account("owner", "account2@example.invalid", {"services": ["calendar"]})
         with self.assertRaises(WorkflowError) as failed:
             self.service.enroll("owner", "account2@example.invalid", "unreviewed-calendar", "session", {})
-        self.assertEqual("project_setup_required", failed.exception.code)
-        revision = self.store.get("CLIENT#project-one")["revision"]
-        self.service.update_project("owner", "project-one", {"clientRevision": revision,
+        self.assertEqual("application_setup_required", failed.exception.code)
+        revision = self.store.get("CLIENT#gogcli-proxy")["revision"]
+        self.service.review_application( {"clientRevision": revision,
             "apiConfirmed": {"calendar": True}})
         self.service.enroll("owner", "account2@example.invalid", "calendar", "session", {})
         self.assertEqual(["calendar"], self.google.authorization_url.call_args.args[-1])
