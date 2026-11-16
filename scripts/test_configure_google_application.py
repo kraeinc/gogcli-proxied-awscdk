@@ -63,7 +63,7 @@ class OperatorTests(unittest.TestCase):
         factory.return_value.client.return_value.get_caller_identity.return_value = {'Account': 'wrong'}
         with self.assertRaises(ValueError):
             operator.configure(self.source, 'gogcli-prd', self.client_file, ['gmail'], 'testing', factory)
-        factory.assert_called_once_with(profile_name=self.binding['deployment_profile'], region_name=self.binding['region'])
+        factory.assert_called_once_with(profile_name=self.binding['operation_profile'], region_name=self.binding['region'])
         factory.return_value.resource.assert_not_called()
 
     def session(self):

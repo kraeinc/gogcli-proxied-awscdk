@@ -34,7 +34,7 @@ def load_target(source, environment):
             or str(application['project_number']) != '1234567890123'
             or application['organization'] != 'host9.example.invalid'):
         raise ValueError('The binding must identify the canonical gogcli-proxy application.')
-    for key in ('deployment_profile', 'account_id', 'region', 'ssm_prefix', 'public_domain_name', 'stage'):
+    for key in ('operation_profile', 'account_id', 'region', 'ssm_prefix', 'public_domain_name', 'stage'):
         if not isinstance(binding[key], str) or not binding[key].strip():
             raise ValueError('The environment binding is incomplete.')
     callback = f"https://{binding['public_domain_name']}/{binding['stage']}/onboarding/oauth/google/callback"
@@ -56,7 +56,7 @@ def configure(source, environment, client_json, confirmed_apis, publishing_statu
     if session_factory is None:
         import boto3
         session_factory = boto3.Session
-    session = session_factory(profile_name=binding['deployment_profile'], region_name=binding['region'])
+    session = session_factory(profile_name=binding['operation_profile'], region_name=binding['region'])
     if session.client('sts').get_caller_identity()['Account'] != binding['account_id']:
         raise ValueError('The selected AWS profile does not match the environment account.')
     store = Store(session.resource('dynamodb').Table(access['OnboardingTable']),

@@ -6,14 +6,12 @@ from pathlib import Path
 from typing import Optional
 
 import aws_cdk as cdk
-from aws_cdk import CfnOutput, Duration, RemovalPolicy, Stack
+from aws_cdk import CfnOutput, CfnParameter, Duration, RemovalPolicy, Stack
 from aws_cdk import aws_apigateway as apigw
 from aws_cdk import aws_certificatemanager as acm
 from aws_cdk import aws_iam as iam
 from aws_cdk import aws_lambda as lambda_
 from aws_cdk import aws_logs as logs
-from aws_cdk import aws_route53 as route53
-from aws_cdk import aws_route53_targets as targets
 from aws_cdk import aws_s3 as s3
 from .python_asset import python_asset
 from constructs import Construct
@@ -28,9 +26,11 @@ class GoogleProxyApiProps:
     ssm_prefix: str = "/gogcli-proxy"
     lambda_timeout_seconds: int = 30
     lambda_memory_mb: int = 512
-    role_prefix: str = "jdev-gogcli-proxy-prd"
+    role_prefix: str = "gogcli-prd"
     permissions_boundary_arns: dict = field(default_factory=dict)
     ssm_key_arn: str = ""
+    deployed_artifact: dict = field(default_factory=dict)
+    api_key_value: str = ""
 
 
 class GoogleProxyApi(Construct):
@@ -81,7 +81,8 @@ class GoogleProxyApi(Construct):
         proxy_fn = lambda_.Function(
             self,
             "GoogleProxyHandler",
-            code=python_asset(lambda_entry),
+            code=(lambda_.Code.from_bucket(s3.Bucket.from_bucket_name(self, "CodeBucket", props.deployed_artifact["bucket"]), props.deployed_artifact["key"], object_version=props.deployed_artifact["version"])
+                  if props.deployed_artifact else python_asset(lambda_entry)),
             handler="handler.handler",
             architecture=lambda_.Architecture.X86_64,
             runtime=lambda_.Runtime.PYTHON_3_11,
@@ -204,7 +205,7 @@ class GoogleProxyApi(Construct):
             api_key_required=True,
         )
 
-        api_key = apigw.ApiKey(self, "ClientApiKey", enabled=True)
+        api_key = apigw.ApiKey(self, "ClientApiKey", enabled=True, value=props.api_key_value)
         plan = api.add_usage_plan(
             "UsagePlan",
             name="gogcli-proxy",
@@ -242,33 +243,30 @@ class GoogleProxyApiStack(Stack):
             props=GoogleProxyApiProps(stage_name=stage_name, ssm_prefix=ssm_prefix,
                                       role_prefix=binding["role_prefix"],
                                       permissions_boundary_arns=binding["permissions_boundary_arns"],
-                                      ssm_key_arn=binding["ssm_key_arn"]),
+                                      ssm_key_arn=binding["ssm_key_arn"],
+                                      deployed_artifact=binding.get("deployed_artifact", {}),
+                                      api_key_value=CfnParameter(self, "ClientApiKeyValue", no_echo=True).value_as_string),
         )
 
-        zone = route53.HostedZone.from_hosted_zone_attributes(
-            self, "PublicHostedZone", hosted_zone_id=binding["public_hosted_zone_id"],
-            zone_name=binding["public_hosted_zone_name"],
-        )
         certificate = acm.Certificate(
             self, "PublicCertificate", domain_name=binding["public_domain_name"],
-            validation=acm.CertificateValidation.from_dns(zone),
+            validation=acm.CertificateValidation.from_dns(),
         )
         certificate.apply_removal_policy(RemovalPolicy.RETAIN)
-        domain = apigw.DomainName(
-            self, "PublicDomain", domain_name=binding["public_domain_name"],
-            certificate=certificate, endpoint_type=apigw.EndpointType.REGIONAL,
-            security_policy=apigw.SecurityPolicy.TLS_1_2,
-        )
-        domain.apply_removal_policy(RemovalPolicy.RETAIN)
-        apigw.BasePathMapping(
-            self, "PublicMapping", domain_name=domain, rest_api=api.api,
-            stage=api.api.deployment_stage, base_path=stage_name,
-        )
-        alias = route53.ARecord(
-            self, "PublicAlias", zone=zone, record_name=binding["public_domain_name"],
-            target=route53.RecordTarget.from_alias(targets.ApiGatewayDomain(domain)),
-        )
-        alias.apply_removal_policy(RemovalPolicy.RETAIN)
+        CfnOutput(self, "PublicCertificateArn", value=certificate.certificate_arn)
+        if binding["endpoint_enabled"]:
+            domain = apigw.DomainName(
+                self, "PublicDomain", domain_name=binding["public_domain_name"],
+                certificate=certificate, endpoint_type=apigw.EndpointType.REGIONAL,
+                security_policy=apigw.SecurityPolicy.TLS_1_2,
+            )
+            domain.apply_removal_policy(RemovalPolicy.RETAIN)
+            apigw.BasePathMapping(
+                self, "PublicMapping", domain_name=domain, rest_api=api.api,
+                stage=api.api.deployment_stage, base_path=stage_name,
+            )
+            CfnOutput(self, "PublicAliasTarget", value=domain.domain_name_alias_domain_name)
+            CfnOutput(self, "PublicAliasZone", value=domain.domain_name_alias_hosted_zone_id)
         api.public_base_url = f"https://{binding['public_domain_name']}/{stage_name}/"
 
         from .onboarding_resources import GoogleOnboarding

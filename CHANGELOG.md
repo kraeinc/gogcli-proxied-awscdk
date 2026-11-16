@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Move production into its dedicated Operator Live account with product-owned access, preserving existing public URLs, Google connections, and deployed runtime bytes.
+
 - Add product-owned deployment, inspection, and operation roles with separate workload permission boundaries for dedicated-account deployment.
 
 - Accounts: expose public error details only for known authentication and workflow failures; unexpected provider errors return a generic failure.

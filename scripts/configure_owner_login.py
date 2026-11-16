@@ -77,7 +77,7 @@ if metadata.returncode:
 for field, value in [('client_id', binding['oidc_client_id']), ('client_secret', client_secret)]:
     subprocess.run(['keyring', 'credential', 'set-field', credential_slug, field, '--value-stdin'], input=value,
         text=True, check=True, capture_output=True)
-ssm = boto3.Session(profile_name=binding['deployment_profile'], region_name=binding['region']).client('ssm')
+ssm = boto3.Session(profile_name=binding['operation_profile'], region_name=binding['region']).client('ssm')
 ssm.put_parameter(Name=binding['ssm_prefix'] + '/onboarding/oidc-client', Type='SecureString', KeyId='alias/aws/ssm',
     Value=json.dumps({'client_id': binding['oidc_client_id'], 'client_secret': client_secret}), Overwrite=True)
 apps = objects('core/applications/')

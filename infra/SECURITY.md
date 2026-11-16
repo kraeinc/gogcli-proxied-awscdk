@@ -4,7 +4,9 @@
 workload permissions boundaries. It uses direct deployment credentials through
 `CliCredentialsStackSynthesizer`; it does not assume CDK deployment or
 CloudFormation execution roles. The application stack owns its separate proxy,
-onboarding, and API Gateway logging execution roles and their inline permissions.
+onboarding, and API Gateway logging execution roles and their inline permissions. The asset
+bootstrap stack also owns the AWS-managed API Gateway service-linked role needed
+for a regional custom domain.
 
 The security stack is administered using the dedicated account's initial
 `OrganizationAccountAccessRole`. Its exact trusted principal is supplied in the
@@ -41,13 +43,15 @@ identify the actual destination, not the legacy account:
 | `ssm_key_arn` | Destination account's SSM encryption key ARN |
 | `asset_bucket_arn` | Existing destination CDK asset bucket ARN |
 | `public_domain_name` | Existing permanent product hostname |
-| `public_hosted_zone_id` | Zone managed by the application in this account |
 
-The source `host8.example.invalid` parent zone belongs to another account. The migration must
-prepare the chosen DNS ownership and certificate-validation handoff before the
-application deployment. This security stack does not grant cross-account DNS
-access merely by naming a zone ID. Its DNS write grant permits only the product's
-A record; DNS validation records are prepared by the bootstrap administrator.
+The shared `host8.example.invalid` parent zone remains centrally managed. Certificate validation
+and the public alias are managed there during cutover. The application owns its
+certificate, custom domain, and mapping; it does not write the shared DNS zone.
+`endpoint_enabled` controls domain creation during handoff, and `workers_enabled`
+controls the three background event-source mappings. Both are enabled after migration.
+The `deployed_artifact` binding pins the migrated ZIP and its S3 version; both
+functions use the exact previously deployed bytes. The API key is a NoEcho
+CloudFormation parameter. Routine updates reuse its existing value.
 
 1. Bootstrap the dedicated account, asset bucket, SSM key, and DNS/certificate
    prerequisites using the account administrator. Deploy security without
@@ -59,8 +63,7 @@ A record; DNS validation records are prepared by the bootstrap administrator.
 2. Set the application binding's `role_prefix`, destination account/key/profile,
    `client_role_arn` to the operation role, and `permissions_boundary_arns` map
    (`proxy`, `onboarding`, `apigw-logs`) to the security outputs. The old singular
-   boundary binding field has been removed. Existing source binding values remain
-   unchanged in meaning; no source deployment is performed by this change.
+   boundary binding field has been removed.
 3. Deploy the inactive destination application, using the product deployment role.
    Account for domain handoff and disabled workers separately in the migration.
 4. Read the actual generated resources. Add `application_resources` containing
@@ -80,7 +83,6 @@ cdk synth GogcliProductSecurity --app 'uv run --python 3.11 --with-requirements 
 ```
 
 For CDK CLI deployment, pass the same Python entrypoint/context with the explicit
-destination administrator profile. No destination binding, account, deployment,
-or migration is created by adding this foundation. Entry roles and boundaries
-are retained on stack deletion and require explicit cleanup when retiring the
-product account.
+destination administrator profile. The current production binding and security outputs are recorded under
+`env/gogcli-prd`. Entry roles and boundaries are retained on stack deletion and
+require explicit cleanup when retiring the product account.

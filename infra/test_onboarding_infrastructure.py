@@ -19,7 +19,7 @@ class InfrastructureContractTests(unittest.TestCase):
     def setUpClass(cls):
         cls.binding = json.loads((Path(__file__).resolve().parents[1] / 'env/gogcli-prd/binding.json').read_text())
         cls.binding['permissions_boundary_arns'] = {name: f"arn:aws:iam::{cls.binding['account_id']}:policy/gogcli-prd-{name}-boundary" for name in ('proxy', 'onboarding', 'apigw-logs')}
-        cls.binding.update(public_domain_name='host5.example.invalid',
+        cls.binding.update(endpoint_enabled=True, workers_enabled=True, public_domain_name='host5.example.invalid',
             public_hosted_zone_id='Z0123456789', public_hosted_zone_name='host8.example.invalid')
         app = App()
         with patch('stacks.google_proxy_api_substack.python_asset', unbundled_asset), \
@@ -162,15 +162,29 @@ class InfrastructureContractTests(unittest.TestCase):
         self.template.has_resource_properties('AWS::ApiGateway::BasePathMapping', {
             'BasePath': self.binding['stage'], 'Stage': {'Ref': next(iter(self.template.find_resources('AWS::ApiGateway::Stage')))}})
         self.template.has_resource_properties('AWS::CertificateManager::Certificate', {
-            'DomainName': hostname, 'ValidationMethod': 'DNS',
-            'DomainValidationOptions': [{'DomainName': hostname, 'HostedZoneId': self.binding['public_hosted_zone_id']}]})
-        for resource_type in ('AWS::ApiGateway::DomainName', 'AWS::CertificateManager::Certificate', 'AWS::Route53::RecordSet'):
+            'DomainName': hostname, 'ValidationMethod': 'DNS'})
+        for resource_type in ('AWS::ApiGateway::DomainName', 'AWS::CertificateManager::Certificate'):
             resource = next(iter(self.template.find_resources(resource_type).values()))
             self.assertEqual('Retain', resource['DeletionPolicy'])
             self.assertEqual('Retain', resource['UpdateReplacePolicy'])
-        self.template.has_resource_properties('AWS::Route53::RecordSet', {
-            'Name': hostname + '.', 'Type': 'A', 'HostedZoneId': self.binding['public_hosted_zone_id'],
-            'AliasTarget': Match.object_like({'DNSName': Match.any_value(), 'HostedZoneId': Match.any_value()})})
+        self.template.resource_count_is('AWS::Route53::RecordSet', 0)
+
+    def test_migration_staging_preserves_urls_without_domain_or_workers(self):
+        binding = dict(self.binding, endpoint_enabled=False, workers_enabled=False)
+        app = App()
+        stack = GoogleProxyApiStack(app, 'Staging', stage_name=binding['stage'],
+            ssm_prefix=binding['ssm_prefix'], binding=binding,
+            env=Environment(account=binding['account_id'], region=binding['region']))
+        template = Template.from_stack(stack)
+        template.resource_count_is('AWS::ApiGateway::DomainName', 0)
+        template.resource_count_is('AWS::ApiGateway::BasePathMapping', 0)
+        for resource in template.find_resources('AWS::Lambda::EventSourceMapping').values():
+            self.assertFalse(resource['Properties']['Enabled'])
+        for resource in template.find_resources('AWS::Lambda::Function').values():
+            self.assertEqual(binding['deployed_artifact']['bucket'], resource['Properties']['Code']['S3Bucket'])
+            self.assertEqual(binding['deployed_artifact']['key'], resource['Properties']['Code']['S3Key'])
+        parameters = template.to_json()['Parameters']
+        self.assertTrue(parameters['ClientApiKeyValue']['NoEcho'])
 
     def test_inventory_and_services_have_bounded_runtime_bindings(self):
         functions = self.template.find_resources('AWS::Lambda::Function')

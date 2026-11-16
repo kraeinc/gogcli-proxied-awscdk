@@ -1,7 +1,7 @@
 # gogcli-proxy Infra (CDK)
 
 This Python AWS CDK app deploys the `gogcli-prd` environment into Operator account
-`123456789004`, region `us-east-2`, with API Gateway stage `prd`:
+`123456789003`, region `us-east-2`, with API Gateway stage `prd`:
 
 - Two Python Lambdas: the Google API proxy and the owner-onboarding handler. The
   latter also dispatches DynamoDB stream events and runs delayed verification.
@@ -14,7 +14,7 @@ This Python AWS CDK app deploys the `gogcli-prd` environment into Operator accou
 - SSM SecureString storage for Google client secrets, refresh tokens, and owner
   OIDC credentials using the existing AWS-managed SSM key. DynamoDB and queue
   messages contain references and operation metadata, not Google secrets.
-- Explicit bounded `jdev-gogcli-proxy-prd-*` application roles, caller policies,
+- Explicit bounded `gogcli-prd-*` application roles, caller policies,
   and CloudWatch alarms for worker errors, stream age, and dead-letter backlog.
 
 The gogcli client is already wired to:
@@ -29,37 +29,26 @@ Managed account API requests, including Gmail history reads during watch process
 ## Deploy
 
 The source is this repository; the target is
-[`env/gogcli-prd/binding.json`](../env/gogcli-prd/binding.json). Deployment and the
-first CLI caller use the Developer profile `operator-config-11`. The application's
-roles use the existing `OperatorDeveloperCreatedRoleBoundary`; canonical JDev owns
-that boundary and the Developer identity's scoped `execute-api:Invoke` grant.
-This CDK app does not modify those protected roles or redeploy Authentik.
-
-From the repository root, prepare the project-local Python environment:
+[`env/gogcli-prd/binding.json`](../env/gogcli-prd/binding.json). Product-owned access
+and runtime permission boundaries are documented in [SECURITY.md](SECURITY.md).
+Initial security setup uses the account bootstrap administrator; routine application
+updates use `gogcli-live-deployment`. Inspection uses `gogcli-live-inspection`,
+and CLI calls and operations use `gogcli-live-operation`.
 
 ```bash
-uv venv infra/.venv
-uv pip install --python infra/.venv/bin/python -r infra/requirements.txt
-export AWS_REGION=us-east-2
-
-aws --profile operator-config-11 --region us-east-2 sts get-caller-identity
-cdk synth GogcliGoogleProxyApi \
-  --app 'infra/.venv/bin/python infra/app.py' \
-  --context environment=gogcli-prd --profile operator-config-11
-cdk deploy GogcliGoogleProxyApi \
-  --app 'infra/.venv/bin/python infra/app.py' \
-  --context environment=gogcli-prd --profile operator-config-11 \
-  --outputs-file env/gogcli-prd/access.json
+aws --profile gogcli-live-deployment --region us-east-2 sts get-caller-identity
+npx --yes aws-cdk@2.1148.1 deploy GogcliGoogleProxyApi \
+  --app 'uv run --python 3.11 --with-requirements infra/requirements.txt python infra/app.py' \
+  --context environment=gogcli-prd --profile gogcli-live-deployment \
+  --require-approval never --outputs-file env/gogcli-prd/access.json
 ```
 
-CDK bundles the Python runtime and the onboarding HTML, JavaScript, and CSS;
-The installed `uv` packages prebuilt Linux x86_64/Python 3.11 wheels; missing
-wheels fail the build rather than using host binaries. Docker is not required.
-Run `infra/.venv/bin/python -m unittest discover -s infra -p test_python_asset.py`
-to check the actual payload, its ELF architecture, and static assets. The app uses
-`CliCredentialsStackSynthesizer`, so it deploys with this explicit Developer
-identity and uses the existing CDK bootstrap asset bucket without assuming
-bootstrap roles.
+The deployed migration binding pins the exact existing Lambda ZIP in the destination
+asset bucket. A future software release must replace that artifact deliberately.
+The first deployment supplies `ClientApiKeyValue` securely; routine updates reuse
+that NoEcho CloudFormation parameter. Never put its value in tracked files.
+The stack uses `CliCredentialsStackSynthesizer` and product-owned runtime roles.
+The bootstrap asset infrastructure is defined by `infra/assets-template.json`.
 
 The generated CDK outputs in `env/gogcli-prd/access.json` are grouped under
 `GogcliGoogleProxyApi` and contain these non-secret access facts:
@@ -68,7 +57,7 @@ The generated CDK outputs in `env/gogcli-prd/access.json` are grouped under
 | --- | --- |
 | `ProxyBaseUrl` | CLI proxy base URL, ending in `/prd/` |
 | `ApiKeyId` | Identifier for the usage-plan key; not its secret value |
-| `ProxyInvokeArns` | JSON array string of the six exact canonical JDev invocation resources |
+| `ProxyInvokeArns` | JSON array string of the six exact product invocation resources |
 | `SetupUrl` | Published HTTPS owner account connections page, ending in `/prd/onboarding/` |
 | `GoogleCallbackUrl` | Exact redirect URI for the Google Web application client |
 | `OwnerCallbackUrl` | Exact Authentik redirect URI |
@@ -82,40 +71,20 @@ this grant does not include onboarding, other stages, or generic
 Google HTTP batch routes. Account access and caller/account policy still apply
 after API Gateway accepts a signed request.
 
-Apply this list through the canonical JDev runner to both the Developer identity
-policy and created-role boundary. Source:
-`/Users/Operator/Projects/development/jdevaws/templates/jdev-target-access.yaml`.
-Target: the existing `operator-config-9` stack in **us-east-1**, account
-`123456789004`, explicit manifest profile `operator-config-10`. Proxy resources
-are in **us-east-2**. Update only Operator production:
-
-```bash
-cd /Users/Operator/Projects/development/jdevaws
-uv run python scripts/jdev_target_access.py plan production --account k-rae-prd
-JDEV_DEPLOY_CONFIRM=deploy-production uv run python scripts/jdev_target_access.py deploy production --account k-rae-prd
-```
-
-The plural `ApplicationApiInvokeArns` source contract replaces the old singular
-Gmail parameter. Other manifest targets remain disabled. A source change is not
-proof of a deployed binding; inspect stack completion and real signed requests
-after rollout. Do not run a fleet deployment to clear other targets' expected
-baseline-version differences.
+The operation role's invocation grants and workload ceilings are owned by
+`GogcliProductSecurity`. Refresh its exact-resource binding as part of any API or
+state-resource replacement. The application no longer depends on JDev grants.
 
 ## Stable public address
 
-The production binding fixes `public_domain_name` under the existing `host8.example.invalid`
-Route53 zone. The stack owns a DNS-validated regional ACM certificate, API
-Gateway custom domain, `/prd` base-path mapping, and DNS alias. All public setup,
-callback, and proxy URLs use that hostname; the underlying API ID remains an IAM
-invocation resource, not an OAuth registration address.
+The production binding fixes `public_domain_name` under the shared `host8.example.invalid`
+Route53 zone. The application owns a retained DNS-validated regional certificate,
+API Gateway custom domain, and `/prd` mapping. The shared zone's validation CNAME
+and alias are managed separately. All public URLs preserve the existing hostname.
 
-The domain, certificate, and DNS alias are retained on stack deletion. Preserve
-the binding across API replacements and repoint the mapping to the replacement
-stage. Recreating a deleted stack requires importing these retained resources;
-do not generate another hostname to bypass ownership conflicts. Intentional
-retirement requires removing external registrations and explicitly cleaning up
-the retained resources. This endpoint contract does not replace credential and
-account-state preservation.
+`endpoint_enabled` supports the cross-account domain handoff; `workers_enabled`
+controls background mappings. Both must be true for the completed production
+migration. Domain and certificate deletion remains explicit because they are retained.
 
 ## Configure owner login and connect Google accounts
 
@@ -138,7 +107,7 @@ membership.
 ## Configure the Google application
 
 The source is this checkout; the target is the existing `gogcli-prd` binding
-(account `123456789004`, `us-east-2`, explicit profile `operator-config-11`).
+(account `123456789003`, `us-east-2`, explicit profile `gogcli-live-operation`).
 The singular `google_application` binding identifies project `gogcli-proxy`,
 number `1234567890123`, owned by `host9.example.invalid`. This project and its OAuth
 application already exist. Use the downloaded **Web application** client JSON;
@@ -222,12 +191,12 @@ For the first CLI caller, fetch the usage-plan key using `ApiKeyId` from the
 generated access record:
 
 ```bash
-aws --profile operator-config-11 --region us-east-2 apigateway get-api-key \
+aws --profile gogcli-live-operation --region us-east-2 apigateway get-api-key \
   --api-key '<ApiKeyId>' --include-value --query value --output text
 ```
 
 Configure `proxy_base_url` from `ProxyBaseUrl`, `proxy_api_key` from the returned
-value, `aws_profile` as `operator-config-11`, and a verified `default_account` in the
+value, `aws_profile` as `gogcli-live-operation`, and a verified `default_account` in the
 CLI's `config.json`. Run `bin/gog config path` to locate it. Google credentials
 stay on the server; the account guide provides the
 first read-only CLI checks. Signed `GET /proxy/v1/accounts` returns only metadata

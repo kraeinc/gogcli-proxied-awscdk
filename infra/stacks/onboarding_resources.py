@@ -14,6 +14,7 @@ from aws_cdk import aws_lambda_event_sources as sources
 from aws_cdk import aws_logs as logs
 from aws_cdk import aws_sqs as sqs
 from aws_cdk import aws_ssm as ssm
+from aws_cdk import aws_s3 as s3
 from .python_asset import python_asset
 from constructs import Construct
 
@@ -49,7 +50,8 @@ class GoogleOnboarding(Construct):
         owner_callback = setup_url + "auth/callback"
         secret_parameter = prefix + "/onboarding/oidc-client"
         function = lambda_.Function(self, "Handler",
-            code=python_asset(Path(__file__).resolve().parents[1] / "lambda" / "google_proxy"),
+            code=(lambda_.Code.from_bucket(s3.Bucket.from_bucket_name(self, "CodeBucket", binding["deployed_artifact"]["bucket"]), binding["deployed_artifact"]["key"], object_version=binding["deployed_artifact"]["version"])
+                  if binding.get("deployed_artifact") else python_asset(Path(__file__).resolve().parents[1] / "lambda" / "google_proxy")),
             handler="onboarding.handler", runtime=lambda_.Runtime.PYTHON_3_11, architecture=lambda_.Architecture.X86_64,
             function_name=f"{role_prefix}-onboarding", role=role, log_group=log_group,
             timeout=Duration.seconds(40), memory_size=512,
@@ -72,9 +74,9 @@ class GoogleOnboarding(Construct):
         proxy.lambda_fn.add_to_role_policy(iam.PolicyStatement(
             actions=["dynamodb:GetItem", "dynamodb:Scan"], resources=[table.table_arn]))
         function.add_event_source(sources.DynamoEventSource(table, starting_position=lambda_.StartingPosition.TRIM_HORIZON,
-            batch_size=10, retry_attempts=-1, bisect_batch_on_error=True, report_batch_item_failures=True))
-        function.add_event_source(sources.SqsEventSource(queue, batch_size=1, report_batch_item_failures=True))
-        function.add_event_source(sources.SqsEventSource(dlq, batch_size=1, report_batch_item_failures=True))
+            enabled=binding["workers_enabled"], batch_size=10, retry_attempts=-1, bisect_batch_on_error=True, report_batch_item_failures=True))
+        function.add_event_source(sources.SqsEventSource(queue, enabled=binding["workers_enabled"], batch_size=1, report_batch_item_failures=True))
+        function.add_event_source(sources.SqsEventSource(dlq, enabled=binding["workers_enabled"], batch_size=1, report_batch_item_failures=True))
         queue.grant_send_messages(role)
         parameter_arn = f"arn:aws:ssm:{stack.region}:{stack.account}:parameter"
         allow_paths = [prefix + "/allow/" + encoded(binding["client_role_arn"]), prefix + "/allow/" + encoded(f"arn:aws:iam::{binding['account_id']}:role/{role_prefix}-onboarding")]
