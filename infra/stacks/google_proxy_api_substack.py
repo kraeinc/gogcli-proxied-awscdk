@@ -1,7 +1,7 @@
 import json
 import os
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
@@ -29,7 +29,7 @@ class GoogleProxyApiProps:
     lambda_timeout_seconds: int = 30
     lambda_memory_mb: int = 512
     role_prefix: str = "jdev-gogcli-proxy-prd"
-    permissions_boundary_arn: str = ""
+    permissions_boundary_arns: dict = field(default_factory=dict)
     ssm_key_arn: str = ""
 
 
@@ -47,7 +47,7 @@ class GoogleProxyApi(Construct):
             raise ValueError(f"lambda entry not found: {lambda_entry}")
 
         boundary = iam.ManagedPolicy.from_managed_policy_arn(
-            self, "RoleBoundary", props.permissions_boundary_arn
+            self, "RoleBoundary", props.permissions_boundary_arns["proxy"]
         )
         proxy_role = iam.Role(
             self, "ProxyRole", role_name=f"{props.role_prefix}-proxy",
@@ -175,7 +175,8 @@ class GoogleProxyApi(Construct):
         gateway_logs_role = iam.Role(
             self, "GatewayLogsRole", role_name=f"{props.role_prefix}-apigw-logs",
             assumed_by=iam.ServicePrincipal("apigateway.amazonaws.com"),
-            permissions_boundary=boundary,
+            permissions_boundary=iam.ManagedPolicy.from_managed_policy_arn(
+                self, "GatewayRoleBoundary", props.permissions_boundary_arns["apigw-logs"]),
         )
         # API Gateway validates its documented push-to-logs permissions at account setup.
         gateway_logs_role.add_to_policy(iam.PolicyStatement(
@@ -240,7 +241,7 @@ class GoogleProxyApiStack(Stack):
             "Proxy",
             props=GoogleProxyApiProps(stage_name=stage_name, ssm_prefix=ssm_prefix,
                                       role_prefix=binding["role_prefix"],
-                                      permissions_boundary_arn=binding["permissions_boundary_arn"],
+                                      permissions_boundary_arns=binding["permissions_boundary_arns"],
                                       ssm_key_arn=binding["ssm_key_arn"]),
         )
 

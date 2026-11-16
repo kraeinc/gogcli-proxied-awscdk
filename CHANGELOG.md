@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add product-owned deployment, inspection, and operation roles with separate workload permission boundaries for dedicated-account deployment.
+
 - Accounts: expose public error details only for known authentication and workflow failures; unexpected provider errors return a generic failure.
 
 - Proxy: stream full Drive downloads and exports to the CLI through private S3 staging and five-minute signed links, preserving account and operation policy checks and avoiding the Lambda response-size limit. Staging is bounded to 256 MiB and the request deadline.

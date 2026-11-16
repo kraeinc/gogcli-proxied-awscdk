@@ -39,7 +39,7 @@ class GoogleOnboarding(Construct):
             retention_period=Duration.days(14), dead_letter_queue=sqs.DeadLetterQueue(queue=dlq, max_receive_count=5))
         role = iam.Role(self, "Role", role_name=f"{role_prefix}-onboarding",
             assumed_by=iam.ServicePrincipal("lambda.amazonaws.com"),
-            permissions_boundary=iam.ManagedPolicy.from_managed_policy_arn(self, "Boundary", binding["permissions_boundary_arn"]))
+            permissions_boundary=iam.ManagedPolicy.from_managed_policy_arn(self, "Boundary", binding["permissions_boundary_arns"]["onboarding"]))
         log_group = logs.LogGroup(self, "Logs", log_group_name=f"/aws/lambda/{role_prefix}-onboarding",
             retention=logs.RetentionDays.ONE_MONTH, removal_policy=RemovalPolicy.RETAIN)
         log_group.grant_write(role)

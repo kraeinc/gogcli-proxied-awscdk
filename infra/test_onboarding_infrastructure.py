@@ -18,6 +18,7 @@ class InfrastructureContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.binding = json.loads((Path(__file__).resolve().parents[1] / 'env/gogcli-prd/binding.json').read_text())
+        cls.binding['permissions_boundary_arns'] = {name: f"arn:aws:iam::{cls.binding['account_id']}:policy/gogcli-prd-{name}-boundary" for name in ('proxy', 'onboarding', 'apigw-logs')}
         cls.binding.update(public_domain_name='host5.example.invalid',
             public_hosted_zone_id='Z0123456789', public_hosted_zone_name='host8.example.invalid')
         app = App()
@@ -48,13 +49,14 @@ class InfrastructureContractTests(unittest.TestCase):
             self.assertEqual('AWS_IAM', method['AuthorizationType'])
             self.assertTrue(method['ApiKeyRequired'])
 
-    def test_all_created_roles_have_explicit_names_and_shared_boundary(self):
+    def test_all_created_roles_have_their_named_workload_boundary(self):
         roles = self.template.find_resources('AWS::IAM::Role')
         self.assertEqual(3, len(roles))
         for value in roles.values():
             properties = value['Properties']
             self.assertTrue(properties['RoleName'].startswith(self.binding['role_prefix'] + '-'))
-            self.assertEqual(self.binding['permissions_boundary_arn'], properties['PermissionsBoundary'])
+            name = properties['RoleName'].removeprefix(self.binding['role_prefix'] + '-')
+            self.assertEqual(self.binding['permissions_boundary_arns'][name], properties['PermissionsBoundary'])
 
     def test_download_storage_is_private_expiring_and_scoped_to_proxy(self):
         buckets = self.template.find_resources('AWS::S3::Bucket')
