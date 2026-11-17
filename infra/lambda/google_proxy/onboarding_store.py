@@ -259,6 +259,19 @@ class Store(ConnectionStore):
         # One item per person; last write wins for the person's own pointer.
         self.put({"pk": "OWNER#" + owner, "owner": owner, "primary_email": email, "updated_at": now})
 
+    def forget_account(self, account):
+        # Only a credential-free, idle account reaches here (guarded in the command).
+        # A disconnected account keeps credential_revision as "" (present but empty).
+        try:
+            self.table.delete_item(Key={"pk": account["pk"]},
+                ConditionExpression="attribute_not_exists(active_operation) AND (attribute_not_exists(credential_revision) OR credential_revision = :empty)",
+                ExpressionAttributeValues={":empty": ""})
+        except Exception as exc:
+            self._conditional(exc)
+        meta = self.get("OWNER#" + account["owner"])
+        if meta and meta.get("primary_email") == account["email"]:
+            self.put({**meta, "primary_email": ""})
+
     def secret_put(self, suffix, value):
         name = self.prefix + "/onboarding/" + suffix
         self.parameter_put(name, value)

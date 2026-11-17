@@ -130,6 +130,14 @@ paths:
                     - drive
                     - calendar
               additionalProperties: false
+    delete:
+      summary: Remove an account that is not connected (metadata only; nothing at Google is affected)
+      responses:
+        '204':
+          description: Account removed from the owner's list.
+        default:
+          $ref: '#/components/responses/Problem'
+      parameters: *id008
   /v1/accounts/{email}/enrollments:
     parameters:
     - $ref: '#/components/parameters/Email'

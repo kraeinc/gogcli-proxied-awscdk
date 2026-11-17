@@ -170,11 +170,18 @@ large-file transfers, or content/folder/label filtering.
 
 A fresh candidate refresh and minimal selected-service reads must pass before
 installation. Gmail checks profile and at most one message ID; Drive checks the
-account email and at most one file ID. Empty collections pass. After installation,
-the worker waits at least 65 seconds before repeating those probes through the
-signed proxy as the **verifier role**. Its result records the service, revision,
-principal, and time; it does not prove the actual CLI caller's IAM/policy access.
-Run inventory and the same minimal reads as that caller for acceptance.
+account email and at most one file ID. Empty collections pass. **Installation marks
+the account connected immediately**; the end-to-end proxy check then runs in the
+background and never blocks that result. For it, the worker waits one propagation
+window (`ONBOARDING_PROPAGATION_SECONDS`, default 20s) — long enough for the proxy's
+allowlist cache (`GOG_ALLOWLIST_CACHE_TTL_SECONDS`, default 15s) to expire — then
+repeats those probes through the signed proxy as the **verifier role**. Keep the
+propagation window strictly above the allowlist cache TTL. A failing background
+check flips the account to `needs_attention`; it never un-connects a good install.
+The result records the service, revision, principal, and time; it does not prove
+the actual CLI caller's IAM/policy access. Run inventory and the same minimal reads
+as that caller for acceptance. Each completed check emits a `connection_completed`
+wide log event with the total and per-phase seconds for latency analysis.
 
 Google connection, the latest attempt, and desired tool access
 are separate facts. Each login (`binding.owners[]`, keyed by its Authentik `sub`)
@@ -199,11 +206,17 @@ record; it does not change proxy authorization or the CLI's `default_account`.
 
 Disconnect removes the verifier grant, every configured owner caller's grant,
 and installed credentials through a persisted operation. It does not mutate Google content or revoke the shared
-Google application's consent. Removal remains applying for at least 65 seconds
-after the final authorization write. Starting requests fail within the 60-second
-configuration cache bound; an already authorized request may finish within its
+Google application's consent. Removal remains applying for one propagation window
+after the final authorization write. Starting requests fail within the allowlist
+cache bound; an already authorized request may finish within its
 existing 27-second budget. Failures remain retryable and never report a completed
 removal before its writes and propagation window finish.
+
+An account that is **not connected** — never connected, or already disconnected —
+can be removed from the owner's list entirely with `DELETE /onboarding/v1/accounts/{email}`
+(the **Remove from list** action). This deletes only the saved metadata (and clears
+it as the owner's primary if set); it is refused for an account that still holds a
+credential or has an active operation, and it never touches Google.
 
 For the first CLI caller, fetch the usage-plan key using `ApiKeyId` from the
 generated access record:

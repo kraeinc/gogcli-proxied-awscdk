@@ -94,6 +94,8 @@ class ConnectionLinks:
         result['canContinue'] = ((op['phase'] == 'awaiting_connection' and op['link_expires_at'] > int(time.time())) or
                                  (op['phase'] == 'authorizing' and op.get('consent_expires_at', 0) > int(time.time())))
         result['expiresAt'] = op['link_expires_at']
+        if op.get('promoted_at'):
+            result['promotedAt'] = op['promoted_at']
         if op.get('consent_expires_at'):
             result['consentExpiresAt'] = op['consent_expires_at']
         if op.get('error_code'):

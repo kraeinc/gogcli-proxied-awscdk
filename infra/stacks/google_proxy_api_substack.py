@@ -100,6 +100,9 @@ class GoogleProxyApi(Construct):
                     f"{props.ssm_prefix.rstrip('/')}/policy",
                 ),
                 "GOG_POLICY_CACHE_TTL_SECONDS": os.getenv("GOG_POLICY_CACHE_TTL_SECONDS", "30"),
+                # Shorter allowlist cache => faster post-connect propagation. Keep
+                # ONBOARDING_PROPAGATION_SECONDS strictly above this value.
+                "GOG_ALLOWLIST_CACHE_TTL_SECONDS": os.getenv("GOG_ALLOWLIST_CACHE_TTL_SECONDS", "15"),
                 "GOG_POLICY_EVENTS_ENABLED": os.getenv("GOG_POLICY_EVENTS_ENABLED", "false"),
                 "GOG_POLICY_EVENT_BUS_ARN": os.getenv("GOG_POLICY_EVENT_BUS_ARN", ""),
                 # Defaults can be overridden per-account via SSM JSON.

@@ -13,6 +13,15 @@ def owner_callers():
     return json.loads(os.environ.get("ONBOARDING_OWNER_CALLERS", "{}"))
 
 
+def propagation_seconds():
+    # The verifier probe (and a real caller) must wait out the proxy's allowlist
+    # cache. Keep this strictly above GOG_ALLOWLIST_CACHE_TTL_SECONDS (default 15).
+    try:
+        return max(1, min(int(os.environ.get("ONBOARDING_PROPAGATION_SECONDS", "20")), 300))
+    except ValueError:
+        return 20
+
+
 def owner_caller_arn(owner):
     return owner_callers().get(owner)
 
@@ -99,9 +108,9 @@ def promote(store, op, now):
             "installed_project_id": op["project_id"], "installed_client_revision": op["client_revision"],
             "installed_services": op["services"], "granted_scopes": op["granted_scopes"], "google_subject": op["google_subject"],
             "managed_policy_hash": policy_hash, "verifications": {}, "saved_recovery": {}}, lease=lease)
-        written_at = int(time.time())
+        written_at, window = int(time.time()), propagation_seconds()
         return {"phase": "verifying", "promoted_at": written_at, "credential_revision": candidate["credential_revision"],
-            "next_attempt": written_at + 65, "authorization_written_at": written_at, "propagation_complete_at": written_at + 65}
+            "next_attempt": written_at + window, "authorization_written_at": written_at, "propagation_complete_at": written_at + window}
     finally:
         store.release_effect(op["email"], lease)
 
@@ -118,9 +127,9 @@ def apply_access(store, op, now):
             raise WorkflowError(409, "caller_not_configured", "No tool caller is configured for this login; contact the operator.")
         set_allowlist(store, op["email"], enabled, caller)
         assert_current(store, op, lease)
-        written_at = int(time.time())
+        written_at, window = int(time.time()), propagation_seconds()
         return {"phase": "propagating", "authorization_written_at": written_at,
-            "propagation_complete_at": written_at + 65, "next_attempt": written_at + 65}
+            "propagation_complete_at": written_at + window, "next_attempt": written_at + window}
     finally:
         store.release_effect(op["email"], lease)
 

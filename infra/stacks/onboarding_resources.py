@@ -1,6 +1,7 @@
 """Owner-only remote enrollment beside the IAM-authenticated Google proxy."""
 import base64
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -66,6 +67,7 @@ class GoogleOnboarding(Construct):
                 "GOOGLE_APPLICATION_NAME": binding["google_application"]["name"],
                 "GOOGLE_APPLICATION_ORGANIZATION": binding["google_application"]["organization"],
                 "ONBOARDING_OWNER_CALLERS": json.dumps(mapped_callers, sort_keys=True),
+                "ONBOARDING_PROPAGATION_SECONDS": os.getenv("ONBOARDING_PROPAGATION_SECONDS", "20"),
                 "ONBOARDING_BASE_URL": setup_url, "GOOGLE_CALLBACK_URL": google_callback,
                 "GOG_PROXY_URL": proxy_url, "PROXY_BASE_URL": proxy_url,
                 "ONBOARDING_OIDC_ISSUER": binding["oidc_issuer"],

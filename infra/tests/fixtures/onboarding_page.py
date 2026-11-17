@@ -63,6 +63,11 @@ class Handler(BaseHTTPRequestHandler):
         if "accounts" not in route:
             return self.send({}, 404)
         email = route[route.index("accounts") + 1]
+        if self.command == "DELETE" and route[-1] == email:
+            STATE["accounts"] = [item for item in STATE["accounts"] if item["email"] != email]
+            if STATE.get("primaryEmail") == email:
+                STATE["primaryEmail"] = ""
+            return self.send(b"", 204, "text/plain")
         account = next((item for item in STATE["accounts"] if item["email"] == email), None)
         if account is None:
             account = {"email": email, "connection_status": "not_connected", "services": [], "owner_access_enabled": True, "uses_current_app": False}

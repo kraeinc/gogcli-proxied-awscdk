@@ -49,7 +49,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         headers = request_headers(event)
         caller = authorization._caller_id(event)
         allow_param = f"{ssm_prefix}/allow/{authorization._b64url_nopad(caller)}"
-        allow_cfg = proxy_config._ssm_get_json(allow_param)
+        allow_cfg = proxy_config._ssm_get_json(allow_param, cache_ttl_seconds=proxy_config._allowlist_cache_ttl_seconds())
         if allow_cfg is None:
             raise ProxyError(403, "caller account permission is not configured")
         authorization._validate_allowlist(allow_cfg)

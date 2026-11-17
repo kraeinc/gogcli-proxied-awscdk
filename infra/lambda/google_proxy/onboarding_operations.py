@@ -128,6 +128,14 @@ class OnboardingService:
         self.store.save_owner_primary(owner, account["email"], int(time.time()))
         return {"primaryEmail": account["email"]}
 
+    def forget(self, owner, email):
+        account = self.account(owner, email)
+        if account.get("active_operation"):
+            raise WorkflowError(409, "operation_conflict", "Finish the current account action before removing it.")
+        if account.get("credential_revision"):
+            raise WorkflowError(409, "connection_required", "Disconnect this account before removing it from the list.")
+        self.store.forget_account(account)
+
     def operation(self, owner, operation_id):
         op = self.store.get("OP#" + operation_id)
         if not op or op.get("owner") != owner or op.get("expires_at", int(time.time()) + 1) <= int(time.time()):

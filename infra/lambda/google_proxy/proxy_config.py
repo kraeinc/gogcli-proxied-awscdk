@@ -43,6 +43,15 @@ def _policy_events_enabled() -> bool:
     return _parse_bool_env(os.getenv("GOG_POLICY_EVENTS_ENABLED"), default=False)
 
 
+def _allowlist_cache_ttl_seconds() -> int:
+    raw = os.getenv("GOG_ALLOWLIST_CACHE_TTL_SECONDS") or "15"
+    try:
+        val = int(raw)
+    except ValueError:
+        return 15
+    return max(1, min(val, 60))
+
+
 def _policy_ssm_prefix(default_ssm_prefix: str) -> str:
     override = (os.getenv("GOG_POLICY_SSM_PREFIX") or "").strip()
     if override != "":

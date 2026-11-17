@@ -69,10 +69,12 @@ An account connected through the previous application needs **Reconnect**; its
 working connection remains available until the replacement succeeds. A failed
 reconnect does not discard installed access. Paused tool access is shown separately.
 
-After Google approval, services are authorized but the proxy still needs to
-check them. A newly installed connection waits for the access cache to expire
-before those checks run. The page explains this waiting period; it counts the
-account as connected only after the selected-service checks pass.
+After Google approval and install, the account shows **Connected right away** —
+you can close the connection tab. The proxy then confirms each service in the
+background (a short propagation window after install) and shows a quiet
+"confirming access…" note while it does. If a service check fails, the account
+switches to **needs attention** with the specific reason; a successful install is
+never un-connected by the background check.
 
 Each service shows its check status and, after a check runs, its timestamp. Checks refresh authorization
 and make read-only requests: Gmail profile and at most one message ID; Drive
@@ -110,9 +112,13 @@ label only and changes no proxy access or CLI default.
 **Disconnect** removes this proxy's usable credentials and blocks all proxy
 callers for that account. It changes no Google content. Active or delayed
 connection attempts cannot undo it. Removal remains in progress through the
-writes and authorization-cache window: newly starting requests observe changes
-within 60 seconds; the page waits at least 65 seconds before reporting completion.
+writes and authorization-cache window, then reports completion once it finishes.
 Already authorized requests can finish within their bounded request budget.
+
+**Remove from list** deletes an account you aren't using — one entered by mistake,
+or one you've already disconnected. It appears on accounts that aren't connected
+and simply removes the saved entry (and clears it as your primary if it was). It
+touches nothing at Google. A still-connected account must be disconnected first.
 
 Proxy disconnect does not revoke Google's consent record. Use
 [Google's third-party access settings](https://myaccount.google.com/connections)

@@ -32,6 +32,15 @@ class MemoryStore:
     def save_owner_primary(self, owner, email, now):
         self.put({"pk": "OWNER#" + owner, "owner": owner, "primary_email": email, "updated_at": now})
 
+    def forget_account(self, account):
+        current = self.get(account["pk"]) or {}
+        if current.get("active_operation") or current.get("credential_revision"):
+            raise WorkflowError(409, "operation_conflict", "busy")
+        self.items.pop(account["pk"], None)
+        meta = self.get("OWNER#" + account["owner"])
+        if meta and meta.get("primary_email") == account["email"]:
+            self.put({**meta, "primary_email": ""})
+
     def secret_put(self, suffix, value):
         name = self.prefix + "/onboarding/" + suffix
         self.secrets[name] = copy.deepcopy(value)
@@ -173,7 +182,8 @@ class AccountLifecycleTests(unittest.TestCase):
         self.google.authorization_url.return_value = "https://accounts.google.com/consent"
         self.service = OnboardingService(self.store, self.google, "https://app.example/onboarding/oauth/google/callback")
         self.env = patch.dict(os.environ, {"ONBOARDING_OWNER_CALLERS": '{"owner": "arn:aws:iam::123456789012:role/owner"}',
-            "ONBOARDING_VERIFIER_ROLE_ARN": "arn:aws:iam::123456789012:role/verifier", "GOOGLE_PROJECT_ID": "gogcli-proxy"})
+            "ONBOARDING_VERIFIER_ROLE_ARN": "arn:aws:iam::123456789012:role/verifier", "GOOGLE_PROJECT_ID": "gogcli-proxy",
+            "ONBOARDING_PROPAGATION_SECONDS": "65"})
         self.env.start()
         self.addCleanup(self.env.stop)
         self.service.import_client( {"web": {"client_id": "client", "client_secret": "secret",
@@ -238,6 +248,26 @@ class AccountLifecycleTests(unittest.TestCase):
         new = self.service.enroll("owner", "account2@example.invalid", "new-session", "another-session", {})
         self.assertNotEqual(old["id"], new["id"])
         self.assertEqual("canceled", self.store.get("OP#" + old["id"])["status"])
+
+    def test_forget_removes_unconnected_account_and_clears_its_primary(self):
+        self.service.save_account("owner", "second@example.com", {"services": ["gmail"]})
+        self.service.set_primary("owner", "account2@example.invalid")
+        self.service.forget("owner", "account2@example.invalid")
+        self.assertIsNone(self.store.get("ACCOUNT#account2@example.invalid"))
+        self.assertEqual("", self.service.setup("owner")["primaryEmail"])  # pointer cleared with the account
+        self.assertEqual(["second@example.com"], [a["email"] for a in self.service.setup("owner")["accounts"]])
+        with self.assertRaises(WorkflowError) as missing:
+            self.service.forget("other", "second@example.com")
+        self.assertEqual("not_found", missing.exception.code)
+
+    def test_forget_refuses_a_connected_account(self):
+        account = self.store.get("ACCOUNT#account2@example.invalid")
+        account.update(connection_status="connected", credential_revision="installed")
+        self.store.put(account)
+        with self.assertRaises(WorkflowError) as blocked:
+            self.service.forget("owner", "account2@example.invalid")
+        self.assertEqual("connection_required", blocked.exception.code)
+        self.assertIsNotNone(self.store.get("ACCOUNT#account2@example.invalid"))
 
     def test_primary_pointer_is_per_owner_single_valued_and_isolated(self):
         self.service.save_account("owner", "second@example.com", {"services": ["gmail"]})

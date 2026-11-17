@@ -174,6 +174,18 @@ class WorkerLifecycleTests(unittest.TestCase):
         self.assertEqual("not_connected", self.store.get("ACCOUNT#account2@example.invalid")["connection_status"])
 
 
+class PropagationWindowTests(unittest.TestCase):
+    def test_window_defaults_overrides_and_clamps(self):
+        import onboarding_effects
+        cases = {None: 20, "10": 10, "0": 1, "9999": 300, "nonsense": 20}
+        for raw, expected in cases.items():
+            env = {} if raw is None else {"ONBOARDING_PROPAGATION_SECONDS": raw}
+            with patch.dict(os.environ, env, clear=False):
+                if raw is None:
+                    os.environ.pop("ONBOARDING_PROPAGATION_SECONDS", None)
+                self.assertEqual(expected, onboarding_effects.propagation_seconds())
+
+
 class ProxyProbeTests(unittest.TestCase):
     def test_drive_only_signed_probe_checks_identity_and_one_id(self):
         http = Mock()

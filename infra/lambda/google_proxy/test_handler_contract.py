@@ -26,7 +26,7 @@ class ProxyContractTests(unittest.TestCase):
         self.env.start()
         self.http_patch = patch.object(handler, "_HTTP", self.http)
         self.http_patch.start()
-        self.ssm = patch.object(proxy_config, "_ssm_get_json", side_effect=lambda name: {"emails": ["*"]} if "/allow/" in name else self.cfg)
+        self.ssm = patch.object(proxy_config, "_ssm_get_json", side_effect=lambda name, **_: {"emails": ["*"]} if "/allow/" in name else self.cfg)
         self.ssm.start()
         self.addCleanup(self.env.stop)
         self.addCleanup(self.http_patch.stop)

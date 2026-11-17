@@ -171,6 +171,15 @@ def check_installed(store, op, http, now):
     elif any(code in {"authorization_unusable", "refresh_revoked"} for code in errors):
         changes["connection_status"] = "needs_attention"
     store.update_account(op, changes)
+    # Wide event: one line per completed connection so end-to-end and per-phase
+    # latency are measurable (e.g., in CloudWatch Logs Insights) without guessing.
+    created = int(op.get("created_at", now))
+    written = int(op.get("authorization_written_at", op.get("promoted_at", now)))
+    print(json.dumps({"event": "connection_completed", "operation_id": op["id"], "email": op["email"],
+        "kind": op["kind"], "verified": not errors, "total_seconds": now - created,
+        "promotion_seconds": int(op.get("promoted_at", now)) - created, "propagation_seconds": now - written,
+        "attempts": int(op.get("attempts", 0)),
+        "results": {name: value["status"] for name, value in evidence.items()}}))
     if errors:
         return {"phase": "failed", "status": "failed", "error_code": errors[0],
             "recovery": "Saved connection retained; retry its check or resolve the named service permission."}

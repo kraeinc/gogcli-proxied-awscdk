@@ -79,6 +79,9 @@ def dispatch(event):
             existed = service.store.get('ACCOUNT#' + email.strip().lower())
             return response(200 if existed else 201, service.save_account(owner, email, json_body(event)),
                 extra={'Location': base_url() + 'v1/accounts/' + email} if not existed else None)
+        if method == 'DELETE' and not action:
+            service.forget(owner, email)
+            return response(204, '', 'text/plain')
         result = None
         if method == 'POST' and action in ('enrollments', 'verifications', 'recoveries'):
             key = headers.get('idempotency-key', '')

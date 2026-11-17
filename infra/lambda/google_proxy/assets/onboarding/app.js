@@ -4,7 +4,7 @@ const apiBase = new URL('v1/', new URL('./', location.href));
 let snapshot, csrfToken = '', loads = 0, pollTimer, callbackFocused = false;
 const links = new Map(), notes = new Map(), drafts = new Map(), pending = new Set(), keys = new Map(), order = [];
 const WAITING = ['awaiting_connection', 'preparing_consent', 'authorizing'];
-const BUSY = { enrollments: 'Opening Google…', verifications: 'Starting check…', recoveries: 'Retrying…', access: 'Saving…', connection: 'Disconnecting…' };
+const BUSY = { enrollments: 'Opening Google…', verifications: 'Starting check…', recoveries: 'Retrying…', access: 'Saving…', connection: 'Disconnecting…', forget: 'Removing…' };
 function message(id, text, error = false) { $(id).textContent = text; $(id).classList.toggle('error', error); }
 function element(tag, text, parent) { const node = document.createElement(tag); if (text) node.textContent = text; if (parent) parent.append(node); return node; }
 function button(parent, text, action, className = 'secondary') { const node = element('button', text, parent); node.type = 'button'; node.className = className; node.addEventListener('click', action); return node; }
@@ -26,7 +26,11 @@ const installedServices = account => (account.services || []).map(service => ser
 const accountServices = account => [...new Set([...(account.requested_services || ['gmail', 'drive', 'calendar']), ...installedServices(account)])];
 const canContinue = op => op?.phase === 'authorizing' && op.consent_session_matches === true && op.continuation_key && op.continuation_request && op.consent_expires_at * 1000 > Date.now();
 const active = op => op && ['accepted', 'running', 'applying'].includes(op.status);
+// After promotion the credential is installed and the account is connected; the
+// remaining verification runs in the background and must not block the UI.
+const settling = op => op?.phase === 'verifying' && op.promoted_at && active(op);
 const linkWaiting = op => op?.auth_mode === 'connection' && active(op) && WAITING.includes(op.phase);
+const canForget = account => !installed(account) && !active(account.latest_operation) && account.connection_status !== 'disconnecting';
 const installed = account => ['connected', 'needs_attention'].includes(account.connection_status);
 const verified = account => account.connection_status === 'connected' && account.services?.length && account.services.every(service => service.authorization_status === 'granted' && service.last_verification_status === 'succeeded');
 const ready = services => snapshot.application.clientConfigured && services.every(name => snapshot.application.apiConfirmed?.[name]);
@@ -45,6 +49,7 @@ function operationText(op, email, services) {
 }
 function badgeFor(account, op) {
   if (linkWaiting(op)) return op.phase === 'awaiting_connection' ? ['Awaiting link', 'info'] : ['Waiting for Google', 'info'];
+  if (settling(op)) return ['Connected', 'ok'];
   if (active(op)) return op.phase === 'authorizing' ? ['Waiting for Google', 'info'] : ['Working…', 'info'];
   if (account.recovery_available) return ['Needs retry', 'bad'];
   if (installed(account) && (!account.uses_current_app || account.connection_status === 'needs_attention')) return ['Reconnect needed', 'warn'];
@@ -56,12 +61,17 @@ function badgeFor(account, op) {
 function actionsFor(account, draft) {
   const op = account.latest_operation, hasInstalled = installed(account), additions = draft.services.filter(name => !installedServices(account).includes(name));
   const link = text => ({ text, action: 'link' }), here = { text: hasInstalled ? 'Reconnect in this browser' : 'Connect in this browser', action: 'enrollments' };
+  const forget = { text: 'Remove from list', action: 'forget' };
   if (linkWaiting(op)) return [];
+  if (settling(op)) return [{ text: 'Confirming access…', disabled: true }];
   if (active(op) && op.phase !== 'authorizing') return [{ text: ['checking_candidate', 'validating', 'verifying'].includes(op.phase) ? 'Checking…' : 'Working…', disabled: true }];
   if (op?.phase === 'authorizing') return canContinue(op) ? [{ text: 'Continue Google consent', action: 'enrollments' }, { text: 'Restart Google consent', action: 'enrollments', restart: true }] : [{ text: 'Restart Google consent', action: 'enrollments' }];
   if (account.recovery_available) return [{ text: 'Retry connection', action: 'recoveries' }];
   if (op?.auth_mode === 'connection' && op.status !== 'succeeded') return [link('Create new link'), here];
-  if (!hasInstalled || !account.uses_current_app || account.connection_status === 'needs_attention' || additions.length) return [link('Create connection link'), here];
+  if (!hasInstalled || !account.uses_current_app || account.connection_status === 'needs_attention' || additions.length) {
+    const base = [link('Create connection link'), here];
+    return canForget(account) ? [...base, forget] : base;
+  }
   return [{ text: 'Check connection', action: 'verifications' }];
 }
 function renderAccount(account, row, index) {
@@ -72,7 +82,8 @@ function renderAccount(account, row, index) {
   const head = element('div', '', row); head.className = 'account-head'; element('h3', account.email, head);
   const [badge, tone] = badgeFor(account, op); element('span', badge, head).className = 'badge ' + tone;
   if (snapshot.primaryEmail === account.email) element('span', 'Primary', head).className = 'badge info';
-  if (active(op) && !linkWaiting(op)) line(operationText(op, account.email, installedServices(account)), '');
+  if (settling(op)) line('Connected. Confirming access to ' + serviceLabels(installedServices(account)) + ' in the background…', '');
+  else if (active(op) && !linkWaiting(op)) line(operationText(op, account.email, installedServices(account)), '');
   else if (account.recovery_available) line('The connection check needs a retry.', '');
   else if (hasInstalled && !account.uses_current_app) line(account.connection_status === 'connected' ? 'Your existing connection still works. It stays available until the replacement succeeds.' : 'Your existing connection is retained and needs repair. Reconnect to replace its authorization.', '');
   if (hasInstalled) {
@@ -155,6 +166,8 @@ function renderAccounts() {
   const previous = snapshot.accounts.filter(account => installed(account) && !account.uses_current_app).length;
   message('connectedCount', complete + ' of ' + snapshot.accounts.length + ' connected to gogcli-proxy' + (previous ? '; ' + previous + ' existing connection' + (previous === 1 ? '' : 's') + ' awaiting reconnection' : ''));
   snapshot.accounts.forEach(account => { if (!order.includes(account.email)) order.push(account.email); });
+  const present = new Set(snapshot.accounts.map(account => account.email));
+  for (const node of [...$('accounts').children]) if (!present.has(node.dataset.email)) node.remove();
   for (const savedEmail of order) {
     const account = snapshot.accounts.find(item => item.email === savedEmail); if (!account) continue;
     let row = [...$('accounts').children].find(node => node.dataset.email === savedEmail);
@@ -190,9 +203,11 @@ function cancelLink(account, control, linkId) {
   return run(account, control, 'Canceling…', async () => { await request('connection-links/' + encodeURIComponent(linkId), 'DELETE'); links.delete(account.email); });
 }
 function act(account, action, control, restart = false) {
+  if (action === 'forget' && !confirm('Remove ' + account.email + ' from the list? It is not connected, so nothing at Google is affected.')) return;
   return run(account, control, BUSY[action], async () => {
     const draft = draftFor(account), op = account.latest_operation, continuing = action === 'enrollments' && !restart && canContinue(op);
     if (action === 'enrollments' && !continuing && !draft.services.length) throw new Error('Select at least one service.');
+    if (action === 'forget') { await request(accountRoute(account.email), 'DELETE'); order.splice(order.indexOf(account.email), 1); return; }
     const method = action === 'connection' ? 'DELETE' : action === 'access' ? 'PUT' : 'POST';
     const body = action === 'connection' ? undefined : action === 'access' ? { enabled: account.owner_access_enabled === false } : action === 'enrollments' ? continuing ? op.continuation_request : { services: draft.services, ownerAccessEnabled: account.owner_access_enabled !== false, ...(op?.phase === 'authorizing' ? { restart: true } : {}) } : {};
     const key = account.email + ':' + action + ':' + JSON.stringify(body); if (!keys.has(key)) keys.set(key, crypto.randomUUID());

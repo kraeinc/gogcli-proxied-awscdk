@@ -119,6 +119,23 @@ class PrimaryRouteTests(unittest.TestCase):
         result = self.put('account2@example.invalid', owner='someone-else')
         self.assertEqual(404, result['statusCode'])
 
+    def delete(self, email, owner='owner'):
+        with patch.object(runtime, 'get_auth') as auth, patch.object(runtime, 'get_service', return_value=self.service):
+            auth.return_value.session.return_value = {'owner': owner, 'session_id': 'session', 'csrf': 'csrf'}
+            return onboarding.handler({'path': '/onboarding/v1/accounts/' + email, 'httpMethod': 'DELETE'}, None)
+
+    def test_delete_forgets_an_unconnected_account(self):
+        result = self.delete('account2@example.invalid')
+        self.assertEqual(204, result['statusCode'])
+        self.assertEqual([], self.service.setup('owner')['accounts'])
+
+    def test_delete_refuses_a_connected_account(self):
+        account = self.store.get('ACCOUNT#account2@example.invalid')
+        account.update(connection_status='connected', credential_revision='installed')
+        self.store.put(account)
+        result = self.delete('account2@example.invalid')
+        self.assertEqual(409, result['statusCode'])
+
 
 class CallbackRecoveryTests(unittest.TestCase):
     setUp = BoundaryTests.setUp
