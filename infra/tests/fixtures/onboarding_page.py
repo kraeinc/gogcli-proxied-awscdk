@@ -15,6 +15,7 @@ EMAILS = ("account1@example.invalid", "account4@example.invalid", "account9@exam
           "account3@example.invalid", "account5@example.invalid")
 STATE = {
     "csrfToken": "offline-fixture",
+    "primaryEmail": EMAILS[0],
     "application": {"projectId": PROJECT, "name": PROJECT, "organization": "host9.example.invalid",
                     "clientConfigured": True, "apiConfirmed": {"gmail": True, "drive": True}},
     "serviceOptions": [
@@ -24,7 +25,7 @@ STATE = {
     ],
     "accounts": [{"email": email, "connection_status": "not_connected", "services": [],
                   "uses_current_app": False, "requested_services": ["gmail", "drive"],
-                  "owner_access_enabled": True} for email in EMAILS],
+                  "owner_access_enabled": True, "owner_access_available": True} for email in EMAILS],
 }
 STATE["accounts"][0].update({"connection_status": "connected",
     "owner_access_enabled": True,
@@ -66,6 +67,9 @@ class Handler(BaseHTTPRequestHandler):
         if account is None:
             account = {"email": email, "connection_status": "not_connected", "services": [], "owner_access_enabled": True, "uses_current_app": False}
             STATE["accounts"].append(account)
+        if self.command == "PUT" and route[-1] == "primary":
+            STATE["primaryEmail"] = email
+            return self.send({"primaryEmail": email})
         if self.command == "PUT" and route[-1] == email:
             account.update(requested_services=data["services"])
             return self.send(account)

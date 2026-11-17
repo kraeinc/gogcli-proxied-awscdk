@@ -252,6 +252,13 @@ class Store(ConnectionStore):
     def accounts(self):
         return self.rows("ACCOUNT#")
 
+    def owner_metadata(self, owner):
+        return self.get("OWNER#" + owner) or {}
+
+    def save_owner_primary(self, owner, email, now):
+        # One item per person; last write wins for the person's own pointer.
+        self.put({"pk": "OWNER#" + owner, "owner": owner, "primary_email": email, "updated_at": now})
+
     def secret_put(self, suffix, value):
         name = self.prefix + "/onboarding/" + suffix
         self.parameter_put(name, value)

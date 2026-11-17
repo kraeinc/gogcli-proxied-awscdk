@@ -31,6 +31,12 @@ class GoogleOnboarding(Construct):
         super().__init__(scope, construct_id)
         stack = Stack.of(self)
         prefix, role_prefix = binding["ssm_prefix"], binding["role_prefix"]
+        mapped_callers = {}
+        for owner in binding["owners"]:
+            if owner.get("caller_role_arn"):
+                if not owner.get("sub"):
+                    raise ValueError(f"owner {owner.get('username')!r} has caller_role_arn but no sub; run scripts/configure_owner_login.py first")
+                mapped_callers[owner["sub"]] = owner["caller_role_arn"]
         table = dynamodb.Table(self, "State", partition_key=dynamodb.Attribute(name="pk", type=dynamodb.AttributeType.STRING),
             billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST, stream=dynamodb.StreamViewType.NEW_AND_OLD_IMAGES,
             time_to_live_attribute="expires_at", point_in_time_recovery_specification=dynamodb.PointInTimeRecoverySpecification(point_in_time_recovery_enabled=True),
@@ -59,7 +65,7 @@ class GoogleOnboarding(Construct):
                 "GOOGLE_PROJECT_ID": binding["google_application"]["project_id"],
                 "GOOGLE_APPLICATION_NAME": binding["google_application"]["name"],
                 "GOOGLE_APPLICATION_ORGANIZATION": binding["google_application"]["organization"],
-                "ONBOARDING_OWNER_CALLER_ARN": binding["client_role_arn"],
+                "ONBOARDING_OWNER_CALLERS": json.dumps(mapped_callers, sort_keys=True),
                 "ONBOARDING_BASE_URL": setup_url, "GOOGLE_CALLBACK_URL": google_callback,
                 "GOG_PROXY_URL": proxy_url, "PROXY_BASE_URL": proxy_url,
                 "ONBOARDING_OIDC_ISSUER": binding["oidc_issuer"],
@@ -79,7 +85,8 @@ class GoogleOnboarding(Construct):
         function.add_event_source(sources.SqsEventSource(dlq, enabled=binding["workers_enabled"], batch_size=1, report_batch_item_failures=True))
         queue.grant_send_messages(role)
         parameter_arn = f"arn:aws:ssm:{stack.region}:{stack.account}:parameter"
-        allow_paths = [prefix + "/allow/" + encoded(binding["client_role_arn"]), prefix + "/allow/" + encoded(f"arn:aws:iam::{binding['account_id']}:role/{role_prefix}-onboarding")]
+        caller_arns = sorted(set(mapped_callers.values()))
+        allow_paths = [prefix + "/allow/" + encoded(arn) for arn in caller_arns + [f"arn:aws:iam::{binding['account_id']}:role/{role_prefix}-onboarding"]]
         role.add_to_policy(iam.PolicyStatement(actions=["ssm:GetParameter", "ssm:PutParameter"],
             resources=[parameter_arn + p for p in [prefix + "/google/accounts/*", prefix + "/policy/account/*", prefix + "/onboarding/*", *allow_paths]]))
         role.add_to_policy(iam.PolicyStatement(actions=["ssm:DeleteParameter"], resources=[parameter_arn + prefix + "/onboarding/" + p + "/*" for p in ("candidates", "callbacks", "attempts", "owner-logins")] + [parameter_arn + prefix + suffix for suffix in ("/google/accounts/*", "/policy/account/*")]))
@@ -93,9 +100,13 @@ class GoogleOnboarding(Construct):
         resource.add_resource("{proxy+}").add_method("ANY", integration, authorization_type=apigw.AuthorizationType.NONE, api_key_required=False)
         ssm.StringParameter(self, "DefaultPolicy", parameter_name=prefix + "/policy/default",
             string_value=json.dumps({"version": 1, "default_effect": "deny", "rules": []}))
-        for label, caller, policy in [
-            ("Cli", binding["client_role_arn"], service_policy(list(SCOPES_BY_SERVICE))),
-            ("Verifier", f"arn:aws:iam::{binding['account_id']}:role/{role_prefix}-onboarding", verifier_policy())]:
+        operation_role_arn = f"arn:aws:iam::{binding['account_id']}:role/{role_prefix}-operation"
+        # Construct id must stay "Cli" for the operation role: a changed logical id
+        # would try to recreate the already-named parameter and fail the deploy.
+        seeds = [("Cli" if arn == operation_role_arn else "Caller" + encoded(arn)[-8:].replace("-", "0").replace("_", "1"), arn,
+                  service_policy(list(SCOPES_BY_SERVICE))) for arn in caller_arns]
+        seeds.append(("Verifier", f"arn:aws:iam::{binding['account_id']}:role/{role_prefix}-onboarding", verifier_policy()))
+        for label, caller, policy in seeds:
             ssm.StringParameter(self, label + "Policy", parameter_name=prefix + "/policy/caller/" + encoded(caller),
                 string_value=json.dumps(policy))
         cloudwatch.Alarm(self, "StreamDispatchAge", metric=function.metric("IteratorAge"), threshold=3600000, evaluation_periods=1)

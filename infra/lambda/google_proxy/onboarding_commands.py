@@ -104,8 +104,11 @@ def access(service, owner, email, enabled):
         return public_operation(active)
     if enabled and (not account.get("credential_revision") or account.get("desired_connection") == "disconnected"):
         raise WorkflowError(409, "connection_required", "Connect this account before enabling caller access.")
-    from onboarding_effects import validate_allowlist
-    validate_allowlist(service.store, email, enabled, owner_caller=True)
+    from onboarding_effects import owner_caller_arn, validate_allowlist
+    caller = owner_caller_arn(owner)
+    if not caller:
+        raise WorkflowError(409, "caller_not_configured", "No tool caller is configured for this login; contact the operator.")
+    validate_allowlist(service.store, caller)
     op = service.accept(owner, account, "access", "applying_access", changes={"desired_owner_access": enabled},
         details={"enabled": enabled}, supersede=not enabled)
     return public_operation(op)

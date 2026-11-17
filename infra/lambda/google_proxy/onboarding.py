@@ -71,7 +71,7 @@ def dispatch(event):
             data = service.setup(owner, session['session_id'])
             data['csrfToken'] = session['csrf']
             return response(200, data)
-    match = re.fullmatch(r'/onboarding/v1/accounts/([^/]+)(/(enrollments|verifications|recoveries|access|connection))?', path)
+    match = re.fullmatch(r'/onboarding/v1/accounts/([^/]+)(/(enrollments|verifications|recoveries|access|connection|primary))?', path)
     if match:
         email, _, action = match.groups()
         email = unquote(email)
@@ -89,6 +89,8 @@ def dispatch(event):
                 result = service.verification(owner, email, key)
             else:
                 result = service.recover(owner, email, key)
+        elif method == 'PUT' and action == 'primary':
+            return response(200, service.set_primary(owner, email))
         elif method == 'PUT' and action == 'access':
             result = service.access(owner, email, json_body(event).get('enabled'))
         elif method == 'DELETE' and action == 'connection':

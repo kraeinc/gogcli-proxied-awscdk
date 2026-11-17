@@ -71,6 +71,7 @@ function renderAccount(account, row, index) {
   const line = (text, className = 'small') => { if (text) element('p', text, row).className = className; };
   const head = element('div', '', row); head.className = 'account-head'; element('h3', account.email, head);
   const [badge, tone] = badgeFor(account, op); element('span', badge, head).className = 'badge ' + tone;
+  if (snapshot.primaryEmail === account.email) element('span', 'Primary', head).className = 'badge info';
   if (active(op) && !linkWaiting(op)) line(operationText(op, account.email, installedServices(account)), '');
   else if (account.recovery_available) line('The connection check needs a retry.', '');
   else if (hasInstalled && !account.uses_current_app) line(account.connection_status === 'connected' ? 'Your existing connection still works. It stays available until the replacement succeeds.' : 'Your existing connection is retained and needs repair. Reconnect to replace its authorization.', '');
@@ -79,7 +80,8 @@ function renderAccount(account, row, index) {
     const latest = Math.max(0, ...account.services.map(service => service.last_verified_at || 0));
     line(latest ? 'Last check: ' + account.services.map(service => serviceLabels([service.name]) + ' ' + (service.authorization_status !== 'granted' ? 'not authorized' : service.last_verification_status === 'succeeded' ? 'passed' : service.last_verification_status.replaceAll('_', ' '))).join(', ') + ' · ' + time(latest) : 'Connection not checked yet.');
   }
-  if (account.owner_access_enabled === false || hasInstalled) line('Tool access: ' + (active(op) && ['access', 'disconnect'].includes(op.kind) ? 'applying change…' : account.owner_access_enabled === false ? 'paused' : checked ? 'enabled' : 'awaiting connection check'));
+  if (account.owner_access_available === false) { if (hasInstalled) line('Tool access: not configured for your login.'); }
+  else if (account.owner_access_enabled === false || hasInstalled) line('Tool access: ' + (active(op) && ['access', 'disconnect'].includes(op.kind) ? 'applying change…' : account.owner_access_enabled === false ? 'paused' : checked ? 'enabled' : 'awaiting connection check'));
   if (op?.phase === 'authorizing' && op.auth_mode !== 'connection' && !canContinue(op)) line(op.consent_expires_at * 1000 <= Date.now() ? 'Google consent expired. Restart to get a new approval link.' : 'Google consent cannot continue in this owner session. Restart Google consent.');
   if (op && !active(op) && !(op.status === 'succeeded' && op.phase === 'ready')) line((hasInstalled && op.status === 'failed' && op.kind === 'enrollment' ? 'Last reconnect failed. ' : '') + operationText(op, account.email, installedServices(account)));
   const fields = element('fieldset', '', row); fields.className = 'services'; element('legend', 'Services', fields);
@@ -140,8 +142,9 @@ function renderManage(account, op, draft, row, actions, busy) {
   if (!shown.has('verifications')) add('Check connection', control => act(account, 'verifications', control), active(op), 'manage-check');
   if (!shown.has('enrollments')) add('Reconnect', control => act(account, 'enrollments', control, true), active(op) || !ready(draft.services), 'manage-reconnect');
   if (!shown.has('link') && !linkWaiting(op)) add('Create connection link', control => mintLink(account, control), working || !ready(draft.services), 'manage-link').dataset.action = 'link';
+  if (snapshot.primaryEmail !== account.email) add('Make primary', control => setPrimary(account, control), false, 'manage-primary');
   const paused = account.owner_access_enabled === false;
-  add(paused ? 'Resume tool access' : 'Pause tool access', control => act(account, 'access', control), active(op) && paused, 'manage-access');
+  if (account.owner_access_available !== false) add(paused ? 'Resume tool access' : 'Pause tool access', control => act(account, 'access', control), active(op) && paused, 'manage-access');
   add('Disconnect', control => { if (confirm('Disconnect ' + account.email + '? Your Google data is not affected.')) act(account, 'connection', control); }, op?.kind === 'disconnect' && active(op), 'manage-disconnect');
   const google = element('a', 'Revoke at Google ↗', manage); google.href = 'https://myaccount.google.com/connections'; google.target = '_blank'; google.rel = 'noopener noreferrer';
   return manage;
@@ -179,6 +182,9 @@ function mintLink(account, control) {
     if (new URL(link.connectionUrl).origin !== location.origin) throw new Error('Unexpected connection link address.');
     links.set(account.email, link); drafts.delete(account.email);
   });
+}
+function setPrimary(account, control) {
+  return run(account, control, 'Saving…', async () => { await request(accountRoute(account.email) + '/primary', 'PUT', {}); });
 }
 function cancelLink(account, control, linkId) {
   return run(account, control, 'Canceling…', async () => { await request('connection-links/' + encodeURIComponent(linkId), 'DELETE'); links.delete(account.email); });

@@ -190,7 +190,8 @@ class InfrastructureContractTests(unittest.TestCase):
         functions = self.template.find_resources('AWS::Lambda::Function')
         proxy = next(value['Properties'] for value in functions.values() if value['Properties']['Handler'] == 'handler.handler')
         onboarding = next(value['Properties'] for value in functions.values() if value['Properties']['Handler'] == 'onboarding.handler')
-        self.assertEqual(self.binding['client_role_arn'], onboarding['Environment']['Variables']['ONBOARDING_OWNER_CALLER_ARN'])
+        mapped = {owner['sub']: owner['caller_role_arn'] for owner in self.binding['owners'] if owner.get('caller_role_arn')}
+        self.assertEqual(mapped, json.loads(onboarding['Environment']['Variables']['ONBOARDING_OWNER_CALLERS']))
         variables = onboarding['Environment']['Variables']
         application = self.binding['google_application']
         self.assertEqual(application['project_id'], variables['GOOGLE_PROJECT_ID'])
@@ -225,6 +226,13 @@ class InfrastructureContractTests(unittest.TestCase):
             if value['Type'] == 'AWS::SSM::Parameter' and 'CliPolicy' in key)
         self.assertEqual({'gmail', 'drive', 'calendar'},
             {rule['id'] for rule in json.loads(caller_policy['Value'])['rules']})
+        # One caller-policy seed per mapped owner caller, plus the verifier seed.
+        caller_seeds = [value for value in self.resources.values() if value['Type'] == 'AWS::SSM::Parameter'
+            and value['Properties'].get('Name', '').startswith(self.binding['ssm_prefix'] + '/policy/caller/')]
+        mapped = {owner['caller_role_arn'] for owner in self.binding['owners'] if owner.get('caller_role_arn')}
+        self.assertEqual(len(mapped) + 1, len(caller_seeds))
+        allow_writes = [resource for resource in write_resources if '/allow/' in resource]
+        self.assertEqual(len(mapped) + 1, len(allow_writes))
 
 
 if __name__ == '__main__':

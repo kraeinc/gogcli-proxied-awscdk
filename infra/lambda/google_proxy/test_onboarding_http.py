@@ -93,6 +93,33 @@ class BoundaryTests(unittest.TestCase):
             service.return_value.update_project.assert_not_called()
 
 
+class PrimaryRouteTests(unittest.TestCase):
+    def setUp(self):
+        self.store = MemoryStore()
+        self.service = OnboardingService(self.store, Mock(), 'https://api.example/onboarding/oauth/google/callback')
+        env = patch.dict('os.environ', {'ONBOARDING_BASE_URL': 'https://api.example/prd/onboarding/',
+                                        'GOOGLE_PROJECT_ID': 'gogcli-proxy'})
+        env.start()
+        self.addCleanup(env.stop)
+        self.service.save_account('owner', 'account2@example.invalid', {'services': ['gmail']})
+
+    def put(self, email, owner='owner'):
+        with patch.object(runtime, 'get_auth') as auth, patch.object(runtime, 'get_service', return_value=self.service):
+            auth.return_value.session.return_value = {'owner': owner, 'session_id': 'session', 'csrf': 'csrf'}
+            return onboarding.handler({'path': '/onboarding/v1/accounts/' + email + '/primary',
+                'httpMethod': 'PUT', 'body': '{}'}, None)
+
+    def test_primary_is_set_synchronously_and_surfaced_in_setup(self):
+        result = self.put('account2@example.invalid')
+        self.assertEqual(200, result['statusCode'], result['body'])
+        self.assertEqual('account2@example.invalid', json.loads(result['body'])['primaryEmail'])
+        self.assertEqual('account2@example.invalid', self.service.setup('owner')['primaryEmail'])
+
+    def test_primary_on_unowned_account_is_not_found(self):
+        result = self.put('account2@example.invalid', owner='someone-else')
+        self.assertEqual(404, result['statusCode'])
+
+
 class CallbackRecoveryTests(unittest.TestCase):
     setUp = BoundaryTests.setUp
 

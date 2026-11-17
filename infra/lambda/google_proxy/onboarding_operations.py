@@ -38,6 +38,7 @@ class OnboardingService:
     def setup(self, owner, session_id=None):
         accounts = [item for item in self.store.accounts() if item.get("owner") == owner]
         return {"application": self.application(), "serviceOptions": SERVICE_OPTIONS,
+            "primaryEmail": self.store.owner_metadata(owner).get("primary_email", ""),
             "accounts": [self.projection(item, session_id) for item in sorted(accounts, key=lambda row: row["email"])]}
 
     def projection(self, account, session_id=None):
@@ -50,9 +51,11 @@ class OnboardingService:
         if latest and latest.get("auth_mode") == "connection":
             summary.update(auth_mode="connection", connection_link_id=latest["connection_link_id"],
                 connection_expires_at=latest["link_expires_at"])
+        from onboarding_effects import owner_caller_arn
         result.update(uses_current_app=bool(account.get("credential_revision") and account.get("installed_project_id") == application_project_id()),
             requested_services=account.get("requested_services", DEFAULT_SERVICES),
             owner_access_enabled=account.get("desired_owner_access", True),
+            owner_access_available=bool(owner_caller_arn(account.get("owner", ""))),
             recovery_available=account.get("saved_recovery", {}).get("expires_at", 0) > int(time.time()),
             latest_operation=summary)
         return result
@@ -119,6 +122,11 @@ class OnboardingService:
         updated = {**item, "requested_services": services}
         self.store.save_account_metadata(item, updated)
         return self.projection(updated)
+
+    def set_primary(self, owner, email):
+        account = self.account(owner, email)
+        self.store.save_owner_primary(owner, account["email"], int(time.time()))
+        return {"primaryEmail": account["email"]}
 
     def operation(self, owner, operation_id):
         op = self.store.get("OP#" + operation_id)

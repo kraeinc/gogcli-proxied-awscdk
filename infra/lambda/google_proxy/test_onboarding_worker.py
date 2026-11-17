@@ -11,6 +11,9 @@ from onboarding_services import content_hash, requested_scopes, service_policy
 from onboarding_store import WorkflowError, account_parameter
 import test_onboarding_lifecycle as lifecycle
 
+OWNER_CALLER = "arn:aws:iam::123456789012:role/owner"
+VERIFIER = "arn:aws:iam::123456789012:role/verifier"
+
 
 class WorkerLifecycleTests(unittest.TestCase):
     enroll = lifecycle.AccountLifecycleTests.enroll
@@ -42,9 +45,30 @@ class WorkerLifecycleTests(unittest.TestCase):
             result = promote(self.store, op, 100)
         self.assertEqual(205, result["next_attempt"])
         self.assertEqual(140, result["authorization_written_at"])
-        self.assertNotIn(op["email"], self.store.secret_get(allow_parameter(self.store, True))["emails"])
-        self.assertIn(op["email"], self.store.secret_get(allow_parameter(self.store, False))["emails"])
+        self.assertNotIn(op["email"], self.store.secret_get(allow_parameter(self.store, OWNER_CALLER))["emails"])
+        self.assertIn(op["email"], self.store.secret_get(allow_parameter(self.store, VERIFIER))["emails"])
         self.assertEqual("connected", self.store.get("ACCOUNT#account2@example.invalid")["connection_status"])
+
+    def test_promotion_for_unmapped_owner_installs_credential_without_caller_grant(self):
+        op = self.candidate()
+        account = self.store.get("ACCOUNT#account2@example.invalid")
+        account["owner"] = "paula"  # a login with no configured tool caller
+        self.store.put(account)
+        op["owner"] = "paula"
+        self.store.put(op)
+        with patch("onboarding_effects.time.time", return_value=140):
+            promote(self.store, op, 100)
+        self.assertIn(op["email"], self.store.secret_get(allow_parameter(self.store, VERIFIER))["emails"])
+        self.assertIsNone(self.store.optional_secret(allow_parameter(self.store, OWNER_CALLER)))
+        self.assertEqual("connected", self.store.get("ACCOUNT#account2@example.invalid")["connection_status"])
+
+    def test_access_change_for_unmapped_owner_is_rejected(self):
+        account = self.store.get("ACCOUNT#account2@example.invalid")
+        account.update(owner="paula", connection_status="connected", credential_revision="installed")
+        self.store.put(account)
+        with self.assertRaises(WorkflowError) as failed:
+            self.service.access("paula", "account2@example.invalid", True)
+        self.assertEqual("caller_not_configured", failed.exception.code)
 
     def test_disconnect_racing_promotion_cannot_be_overwritten(self):
         op = self.candidate()
@@ -111,11 +135,11 @@ class WorkerLifecycleTests(unittest.TestCase):
 
     def test_whitespace_wildcard_or_domain_grant_requires_operator(self):
         for config in ({"emails": [" * "]}, {"emails": [], "domains": ["other.example"]}):
-            self.store.parameter_put(allow_parameter(self.store, True), config)
+            self.store.parameter_put(allow_parameter(self.store, OWNER_CALLER), config)
             with self.subTest(config=config), self.assertRaises(WorkflowError) as failed:
                 self.service.access("owner", "account2@example.invalid", False)
             self.assertEqual("broad_allowlist_requires_operator", failed.exception.code)
-            self.assertEqual(config, self.store.secret_get(allow_parameter(self.store, True)))
+            self.assertEqual(config, self.store.secret_get(allow_parameter(self.store, OWNER_CALLER)))
 
     def test_promotion_wait_avoids_proxy_until_cache_window_passes(self):
         op = self.candidate()

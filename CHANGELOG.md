@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Breaking: support multiple owner logins, each isolated to its own accounts. Tool access to an account is granted only to its owner login's own caller role, via the `binding.owners[]` (`sub` → `caller_role_arn`) map replacing the single `binding.client_role_arn`/`ONBOARDING_OWNER_CALLER_ARN`. A login without a configured caller is UI-only: it connects and manages accounts (verifier access only) but cannot pause/resume tool access. Disconnect now sweeps every configured owner caller. Run `scripts/configure_owner_login.py` (which records each member's Authentik `sub`) before deploying.
+
+- Accounts: let each owner mark one of their own accounts as primary (**Make primary** / `PUT /v1/accounts/{email}/primary`, surfaced as `setup.primaryEmail`). It is a per-person label and changes no proxy authorization or CLI default.
+
 - Move production into its dedicated Operator Live account with product-owned access, preserving existing public URLs, Google connections, and deployed runtime bytes.
 
 - Add product-owned deployment, inspection, and operation roles with separate workload permission boundaries for dedicated-account deployment.

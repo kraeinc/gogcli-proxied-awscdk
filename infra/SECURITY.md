@@ -61,9 +61,11 @@ CloudFormation parameter. Routine updates reuse its existing value.
    API routes. API Gateway control-plane grants are account-local and regional;
    this is a dedicated product account.
 2. Set the application binding's `role_prefix`, destination account/key/profile,
-   `client_role_arn` to the operation role, and `permissions_boundary_arns` map
-   (`proxy`, `onboarding`, `apigw-logs`) to the security outputs. The old singular
-   boundary binding field has been removed.
+   an `owners[]` entry per operator login (`username`, `sub`, `caller_role_arn`;
+   the first operator's caller is the operation role), and `permissions_boundary_arns`
+   map (`proxy`, `onboarding`, `apigw-logs`) to the security outputs. The old
+   singular boundary binding field and the singular `client_role_arn` have been
+   removed.
 3. Deploy the inactive destination application, using the product deployment role.
    Account for domain handoff and disabled workers separately in the migration.
 4. Read the actual generated resources. Add `application_resources` containing

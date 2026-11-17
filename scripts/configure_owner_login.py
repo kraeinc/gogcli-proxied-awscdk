@@ -45,13 +45,15 @@ schema = call('GET', 'schema/?format=json')
 for required in ('OAuth2ProviderRequest', 'ApplicationRequest', 'GroupRequest', 'PolicyBindingRequest'):
     if required not in schema['components']['schemas']:
         raise RuntimeError('Unsupported Authentik API schema')
-user = exact(objects('core/users/'), 'username', 'host7.example.invalid')
+users = objects('core/users/')
+members = [exact(users, 'username', owner['username']) for owner in binding['owners']]
+member_pks = [user['pk'] for user in members]
 groups = objects('core/groups/')
 group = next((item for item in groups if item['name'] == binding['owner_group']), None)
 if not group:
-    group = call('POST', 'core/groups/', {'name': binding['owner_group'], 'users': [user['pk']], 'is_superuser': False})
+    group = call('POST', 'core/groups/', {'name': binding['owner_group'], 'users': member_pks, 'is_superuser': False})
 else:
-    group = call('PATCH', 'core/groups/' + group['pk'] + '/', {'users': [user['pk']], 'is_superuser': False})
+    group = call('PATCH', 'core/groups/' + group['pk'] + '/', {'users': member_pks, 'is_superuser': False})
 flows = objects('flows/instances/')
 mappings = objects('propertymappings/provider/scope/')
 key = exact(objects('crypto/certificatekeypairs/'), 'name', 'authentik Self-signed Certificate')
@@ -92,7 +94,12 @@ if not found:
 readback = call('GET', f"providers/oauth2/{provider['pk']}/")
 assert readback['client_id'] == binding['oidc_client_id']
 assert readback['redirect_uris'] == provider_body['redirect_uris']
-assert call('GET', f"core/groups/{group['pk']}/")['users'] == [user['pk']]
+assert sorted(call('GET', f"core/groups/{group['pk']}/")['users']) == sorted(member_pks)
+# The provider issues sub_mode=user_uuid; record each member's uuid so the
+# runtime owner-to-caller mapping in binding.json stays verifiable.
+for owner, user in zip(binding['owners'], members):
+    owner['sub'] = user['uuid']
+(ROOT / 'env/gogcli-prd/binding.json').write_text(json.dumps(binding, indent=2) + '\n')
 response = requests.get(binding['oidc_issuer'] + '.well-known/openid-configuration', timeout=15)
 response.raise_for_status()
 assert response.json()['issuer'] == binding['oidc_issuer']
@@ -100,7 +107,8 @@ jwks = requests.get(response.json()['jwks_uri'], timeout=15)
 jwks.raise_for_status()
 assert any(key.get('kty') == 'RSA' for key in jwks.json()['keys'])
 record = {'service': 'https://host1.example.invalid/', 'stage': 'prd', 'application': slug,
-    'provider_id': provider['pk'], 'owner_group': group['pk'], 'owner_username': user['username'],
+    'provider_id': provider['pk'], 'owner_group': group['pk'],
+    'owners': [{'username': user['username'], 'sub': user['uuid']} for user in members],
     'client_id': binding['oidc_client_id'], 'client_type': 'confidential',
     'scopes': ['openid', 'profile', 'email'], 'issuer': binding['oidc_issuer'],
     'callback': access['OwnerCallbackUrl'], 'secret_catalog': credential_slug,

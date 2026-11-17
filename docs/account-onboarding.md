@@ -8,9 +8,10 @@ see the [operator runbook](https://github.com/Frunk-Foundation/gogcli-proxied-aw
 
 ## Connect accounts
 
-Use the owner page to manage every account. If the Google account is in another
-browser profile, use a connection link as described below; that profile does
-not need an owner sign-in.
+Use the owner page to manage every account. Each person signs in with their own
+Authentik account and sees and manages only the accounts they connect. If the
+Google account is in another browser profile, use a connection link as described
+below; that profile does not need an owner sign-in.
 
 For an account signed in to the owner's browser profile, choose services and press
 **Connect in this browser**. Select that exact account at Google and approve the
@@ -98,9 +99,13 @@ codes, secret JSON, or callback URLs containing codes into chat.
 
 ## Remove access or disconnect
 
-Use **Manage** for connection checks, reconnect, pause/resume, and
-disconnect. **Pause tool access** withdraws the configured owner's account access
-while retaining Google authorization. Reconnect preserves a saved pause.
+Use **Manage** for connection checks, reconnect, pause/resume, **Make primary**,
+and disconnect. **Pause tool access** withdraws your login's own caller access to
+the account while retaining Google authorization; reconnect preserves a saved
+pause. If your login has no configured tool caller, the account still connects
+(and is reachable by the verifier only), but the pause/resume action does not
+appear. **Make primary** marks one of your accounts as your primary; it is a
+label only and changes no proxy access or CLI default.
 
 **Disconnect** removes this proxy's usable credentials and blocks all proxy
 callers for that account. It changes no Google content. Active or delayed

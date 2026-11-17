@@ -26,6 +26,12 @@ class MemoryStore:
     def accounts(self):
         return self.rows("ACCOUNT#")
 
+    def owner_metadata(self, owner):
+        return self.get("OWNER#" + owner) or {}
+
+    def save_owner_primary(self, owner, email, now):
+        self.put({"pk": "OWNER#" + owner, "owner": owner, "primary_email": email, "updated_at": now})
+
     def secret_put(self, suffix, value):
         name = self.prefix + "/onboarding/" + suffix
         self.secrets[name] = copy.deepcopy(value)
@@ -166,7 +172,7 @@ class AccountLifecycleTests(unittest.TestCase):
         self.google = Mock()
         self.google.authorization_url.return_value = "https://accounts.google.com/consent"
         self.service = OnboardingService(self.store, self.google, "https://app.example/onboarding/oauth/google/callback")
-        self.env = patch.dict(os.environ, {"ONBOARDING_OWNER_CALLER_ARN": "arn:aws:iam::123456789012:role/owner",
+        self.env = patch.dict(os.environ, {"ONBOARDING_OWNER_CALLERS": '{"owner": "arn:aws:iam::123456789012:role/owner"}',
             "ONBOARDING_VERIFIER_ROLE_ARN": "arn:aws:iam::123456789012:role/verifier", "GOOGLE_PROJECT_ID": "gogcli-proxy"})
         self.env.start()
         self.addCleanup(self.env.stop)
@@ -232,6 +238,20 @@ class AccountLifecycleTests(unittest.TestCase):
         new = self.service.enroll("owner", "account2@example.invalid", "new-session", "another-session", {})
         self.assertNotEqual(old["id"], new["id"])
         self.assertEqual("canceled", self.store.get("OP#" + old["id"])["status"])
+
+    def test_primary_pointer_is_per_owner_single_valued_and_isolated(self):
+        self.service.save_account("owner", "second@example.com", {"services": ["gmail"]})
+        self.assertEqual("", self.service.setup("owner")["primaryEmail"])
+        self.assertEqual("account2@example.invalid", self.service.set_primary("owner", "account2@example.invalid")["primaryEmail"])
+        self.assertEqual("account2@example.invalid", self.service.setup("owner")["primaryEmail"])
+        # Moving the pointer replaces, never accumulates.
+        self.service.set_primary("owner", "second@example.com")
+        self.assertEqual("second@example.com", self.service.setup("owner")["primaryEmail"])
+        # A different login neither sees nor is affected by this owner's primary.
+        self.assertEqual("", self.service.setup("other")["primaryEmail"])
+        with self.assertRaises(WorkflowError) as missing:
+            self.service.set_primary("other", "account2@example.invalid")
+        self.assertEqual("not_found", missing.exception.code)
 
     def test_terminal_idempotency_replays_after_operation_deleted(self):
         response = self.enroll()

@@ -1,4 +1,5 @@
 """Short, account-fenced installed credential, policy, and allowlist mutations."""
+import json
 import os
 import time
 
@@ -7,20 +8,29 @@ from errors import WorkflowError
 from onboarding_store import account_parameter, encoded, new_id
 
 
-def caller_arn(owner_caller):
-    return os.environ["ONBOARDING_OWNER_CALLER_ARN" if owner_caller else "ONBOARDING_VERIFIER_ROLE_ARN"]
+def owner_callers():
+    # Absent mapping means no login has a tool caller yet: fail closed, never raise.
+    return json.loads(os.environ.get("ONBOARDING_OWNER_CALLERS", "{}"))
 
 
-def allow_parameter(store, owner_caller):
-    return store.prefix + "/allow/" + encoded(caller_arn(owner_caller))
+def owner_caller_arn(owner):
+    return owner_callers().get(owner)
+
+
+def verifier_arn():
+    return os.environ["ONBOARDING_VERIFIER_ROLE_ARN"]
+
+
+def allow_parameter(store, caller):
+    return store.prefix + "/allow/" + encoded(caller)
 
 
 def policy_parameter(store, email):
     return store.prefix + "/policy/account/" + encoded(email)
 
 
-def validate_allowlist(store, email, enabled, owner_caller):
-    current = store.optional_secret(allow_parameter(store, owner_caller)) or {}
+def validate_allowlist(store, caller):
+    current = store.optional_secret(allow_parameter(store, caller)) or {}
     emails, domains = current.get("emails", []), current.get("domains", [])
     if not isinstance(emails, list) or not isinstance(domains, list):
         raise WorkflowError(409, "invalid_allowlist", "The managed caller allowlist requires operator repair.")
@@ -32,19 +42,18 @@ def validate_allowlist(store, email, enabled, owner_caller):
     return current
 
 
-def set_allowlist(store, email, enabled, owner_caller):
-    caller = caller_arn(owner_caller)
+def set_allowlist(store, email, enabled, caller):
     key, lease, now = "ALLOWLIST#" + encoded(caller), new_id("ls"), int(time.time())
     # SSM has no compare-and-swap; use the existing per-caller metadata lease.
     store.allow_lock(key, lease, now)
     try:
-        current = validate_allowlist(store, email, enabled, owner_caller)
+        current = validate_allowlist(store, caller)
         emails = {str(item).lower().strip() for item in current.get("emails", [])}
         if enabled:
             emails.add(email)
         else:
             emails.discard(email)
-        store.parameter_put(allow_parameter(store, owner_caller), {**current, "emails": sorted(emails)})
+        store.parameter_put(allow_parameter(store, caller), {**current, "emails": sorted(emails)})
     finally:
         store.allow_unlock(key, lease)
 
@@ -79,9 +88,13 @@ def promote(store, op, now):
         assert_current(store, op, lease)
         store.parameter_put(account_parameter(store.prefix, op["email"]), candidate)
         assert_current(store, op, lease)
-        set_allowlist(store, op["email"], True, owner_caller=False)
+        set_allowlist(store, op["email"], True, verifier_arn())
         account = assert_current(store, op, lease)
-        set_allowlist(store, op["email"], account.get("desired_owner_access", False), owner_caller=True)
+        # Only the account owner's own mapped caller is granted; owners without a
+        # configured caller keep credentials reachable by no data-plane principal.
+        caller = owner_caller_arn(account.get("owner", ""))
+        if caller:
+            set_allowlist(store, op["email"], account.get("desired_owner_access", False), caller)
         store.update_account(op, {"connection_status": "connected", "credential_revision": candidate["credential_revision"],
             "installed_project_id": op["project_id"], "installed_client_revision": op["client_revision"],
             "installed_services": op["services"], "granted_scopes": op["granted_scopes"], "google_subject": op["google_subject"],
@@ -100,7 +113,10 @@ def apply_access(store, op, now):
         enabled = account.get("desired_owner_access", False)
         if enabled and not account.get("credential_revision"):
             raise WorkflowError(409, "connection_required", "Connect the account before enabling caller access.")
-        set_allowlist(store, op["email"], enabled, owner_caller=True)
+        caller = owner_caller_arn(account.get("owner", ""))
+        if not caller:
+            raise WorkflowError(409, "caller_not_configured", "No tool caller is configured for this login; contact the operator.")
+        set_allowlist(store, op["email"], enabled, caller)
         assert_current(store, op, lease)
         written_at = int(time.time())
         return {"phase": "propagating", "authorization_written_at": written_at,
@@ -116,8 +132,9 @@ def remove_connection(store, op, now):
         # Delete credentials first: all callers are denied even if an allowlist needs repair.
         store.secret_delete(account_parameter(store.prefix, op["email"]))
         assert_current(store, op, lease)
-        for owner_caller in (True, False):
-            set_allowlist(store, op["email"], False, owner_caller)
+        # Sweep every configured caller: cross-owner grants and stale mappings are cleaned too.
+        for caller in (verifier_arn(), *sorted(set(owner_callers().values()))):
+            set_allowlist(store, op["email"], False, caller)
             assert_current(store, op, lease)
         policy = store.optional_secret(policy_parameter(store, op["email"]))
         if policy and content_hash(policy) == account.get("managed_policy_hash"):

@@ -96,13 +96,19 @@ uv run --with requests --with boto3 python scripts/configure_owner_login.py
 ```
 
 The script reads the concrete binding and CDK outputs, creates or updates the
-app-specific confidential provider/application, restricts its owner group to
-Operator's `host7.example.invalid` account, and reuses the shared authorization/invalidation
-flows and signing key. It registers `OwnerCallbackUrl` exactly. Authentik API
-access comes from the installed credential catalog; the client credentials are
-saved back to that catalog and SSM SecureString without being printed. Its final
-read-only checks verify provider discovery, JWKS, the exact callback, and owner
-membership.
+app-specific confidential provider/application, and sets its owner group to
+exactly the usernames in `binding.owners[]` (today just `host7.example.invalid`). The
+provider issues `sub_mode=user_uuid`, so the script writes each member's Authentik
+UUID back into `binding.owners[].sub` — the value the runtime owner→caller map
+(`ONBOARDING_OWNER_CALLERS`) and account ownership are keyed on. It reuses the
+shared authorization/invalidation flows and signing key and registers
+`OwnerCallbackUrl` exactly. Authentik API access comes from the installed
+credential catalog; the client credentials are saved back to that catalog and SSM
+SecureString without being printed. Its final read-only checks verify provider
+discovery, JWKS, the exact callback, and owner membership. Run it before the CDK
+deploy so each mapped owner's `sub` is present. Adding a person is a separate
+operational step: create their Authentik user, add a `binding.owners[]` entry,
+re-run this script, then redeploy.
 
 ## Configure the Google application
 
@@ -171,16 +177,28 @@ principal, and time; it does not prove the actual CLI caller's IAM/policy access
 Run inventory and the same minimal reads as that caller for acceptance.
 
 Google connection, the latest attempt, and desired tool access
-are separate facts. Connect enables the configured owner unless an existing
-saved pause must be preserved. **Pause tool access** controls the concrete
-`binding.client_role_arn` (`ONBOARDING_OWNER_CALLER_ARN` at runtime). Turning it off
-removes the owner's explicit email grant while retaining Google authorization
-and limited verifier access. Reconnect preserves the flag and installed
-connection until a usable replacement passes validation. Durable account state
-survives temporary operation cleanup; recovery uses account-level controls.
+are separate facts. Each login (`binding.owners[]`, keyed by its Authentik `sub`)
+owns the accounts it connects, and an account's tool access is granted only to
+that login's own caller role — `binding.owners[].caller_role_arn`, assembled into
+the `ONBOARDING_OWNER_CALLERS` (`{sub: role_arn}`) runtime map. One person's
+caller therefore never reaches another person's accounts. A login with no
+`caller_role_arn` is **UI-only**: it can connect and manage accounts, but its
+accounts receive verifier access only — no data-plane caller — and its
+**Pause/Resume tool access** action is unavailable (`409 caller_not_configured`).
+Connect enables the owner's caller unless a saved pause must be preserved.
+**Pause tool access** removes that login's explicit email grant while retaining
+Google authorization and limited verifier access. Reconnect preserves the flag
+and installed connection until a usable replacement passes validation. Durable
+account state survives temporary operation cleanup; recovery uses account-level
+controls.
 
-Disconnect removes owner/verifier grants and installed credentials through a
-persisted operation. It does not mutate Google content or revoke the shared
+**Primary account.** Each login may mark one of its own connected accounts as
+primary (`PUT /onboarding/v1/accounts/{email}/primary`, surfaced as
+`setup.primaryEmail`). It is a per-person label stored on a single `OWNER#<sub>`
+record; it does not change proxy authorization or the CLI's `default_account`.
+
+Disconnect removes the verifier grant, every configured owner caller's grant,
+and installed credentials through a persisted operation. It does not mutate Google content or revoke the shared
 Google application's consent. Removal remains applying for at least 65 seconds
 after the final authorization write. Starting requests fail within the 60-second
 configuration cache bound; an already authorized request may finish within its
@@ -229,6 +247,7 @@ Notes:
 - `caller_id` comes only from API Gateway's authenticated request identity. Cognito identity IDs take precedence; otherwise `userArn` (or an ARN-valued `caller`) identifies the IAM principal.
 - Assumed-role sessions use a stable role identity: `arn:aws:sts::123456789012:assumed-role/proxy-agent/session-name` becomes `arn:aws:iam::123456789012:role/proxy-agent`. Account, partition, and role remain part of the key; session names cannot grant another role's access. IAM user ARNs remain unchanged.
 - Missing or invalid identities, including a bare `AROA...:session-name` without an ARN, are denied before reading allowlists. There is no `unknown` or session-name fallback.
+- Each mapped owner caller and the verifier role has its own `allow/<caller_id_enc>` parameter; a promoted account is written only into its own owner's caller allowlist (plus the verifier's).
 - Email/domain matching is case-insensitive. Operator-managed caller documents can use domains or `"*"`; managed owner/verifier access toggles require explicit-email-only grants.
 - If a managed allowlist contains a wildcard/domain grant, account toggles fail with `409 broad_allowlist_requires_operator` instead of silently removing that configuration or claiming one email is revoked.
 

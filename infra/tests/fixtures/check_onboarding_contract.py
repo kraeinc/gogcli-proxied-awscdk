@@ -176,7 +176,7 @@ def main():
     url = f"http://127.0.0.1:{server.server_port}/onboarding/"
     os.environ.update(ONBOARDING_BASE_URL=url, GOOGLE_PROJECT_ID=PROJECT,
         GOOGLE_CALLBACK_URL=SERVICE.callback_url, PROXY_BASE_URL="https://fixture.invalid/prd/", PROXY_API_KEY_ID="fixture",
-        ONBOARDING_OWNER_CALLER_ARN="arn:aws:iam::123456789012:role/fixture-owner",
+        ONBOARDING_OWNER_CALLERS='{"fixture": "arn:aws:iam::123456789012:role/fixture-owner"}',
         ONBOARDING_VERIFIER_ROLE_ARN="arn:aws:iam::123456789012:role/fixture-verifier")
     SERVICE.import_client({"web": {"project_id": PROJECT, "client_id": "offline-canonical-client", "client_secret": "offline-secret", "redirect_uris": [SERVICE.callback_url]}})
     revision = STORE.get("CLIENT#" + PROJECT)["revision"]

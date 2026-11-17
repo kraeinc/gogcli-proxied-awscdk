@@ -219,6 +219,27 @@ paths:
                 enabled: *id006
               required:
               - enabled
+  /v1/accounts/{email}/primary:
+    parameters:
+    - $ref: '#/components/parameters/Email'
+    put:
+      summary: Mark this owned account as the caller's primary (metadata only; no proxy authorization change)
+      responses:
+        '200':
+          description: Primary account recorded for the signed-in owner.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  primaryEmail:
+                    type: string
+                    format: email
+                required:
+                - primaryEmail
+        default:
+          $ref: '#/components/responses/Problem'
+      parameters: *id008
   /v1/accounts/{email}/connection:
     parameters:
     - $ref: '#/components/parameters/Email'
@@ -627,6 +648,9 @@ components:
         properties:
           requested_services: *id005
           owner_access_enabled: *id006
+          owner_access_available:
+            type: boolean
+            description: Whether the signed-in owner has a configured tool caller; false for UI-only logins, where the Pause/Resume tool access action is unavailable.
           latest_operation:
             anyOf:
             - $ref: '#/components/schemas/Operation'
@@ -702,6 +726,9 @@ components:
       type: object
       properties:
         csrfToken: *id001
+        primaryEmail:
+          type: string
+          description: The owner's chosen primary account email, or empty when none is set.
         serviceOptions:
           type: array
           items:
@@ -742,6 +769,7 @@ components:
             not proof Google permits a specific account.
       required:
       - csrfToken
+      - primaryEmail
       - application
       - serviceOptions
       - accounts

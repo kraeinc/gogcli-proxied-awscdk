@@ -163,7 +163,7 @@ def main():
     fixture.SERVICE.callback_url = url + "oauth/google/callback"
     os.environ.update(ONBOARDING_BASE_URL=url, GOOGLE_PROJECT_ID=fixture.PROJECT,
         GOOGLE_CALLBACK_URL=fixture.SERVICE.callback_url, PROXY_BASE_URL="https://fixture.invalid/prd/", PROXY_API_KEY_ID="fixture",
-        ONBOARDING_OWNER_CALLER_ARN="arn:aws:iam::123456789012:role/fixture-owner",
+        ONBOARDING_OWNER_CALLERS='{"fixture": "arn:aws:iam::123456789012:role/fixture-owner"}',
         ONBOARDING_VERIFIER_ROLE_ARN="arn:aws:iam::123456789012:role/fixture-verifier")
     fixture.runtime.get_auth = lambda: OwnerFixture()
     fixture.SERVICE.import_client({"web": {"project_id": fixture.PROJECT, "client_id": "offline-canonical-client",
