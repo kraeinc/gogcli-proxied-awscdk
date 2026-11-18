@@ -14,7 +14,7 @@ configure-google-application client_json confirmed_apis publishing_status:
     uv run --python 3.11 --with boto3 --with-requirements infra/lambda/google_proxy/requirements.txt python scripts/configure_google_application.py --source "{{justfile_directory()}}" --environment gogcli-prd --client-json "$1" --confirmed-apis "$2" --publishing-status "$3"
 
 operator-test:
-    AWS_EC2_METADATA_DISABLED=true uv run --python 3.11 --with boto3 --with-requirements infra/lambda/google_proxy/requirements.txt python -m unittest discover -s scripts -p 'test_configure_google_application.py'
+    AWS_EC2_METADATA_DISABLED=true uv run --python 3.11 --with boto3 --with-requirements infra/lambda/google_proxy/requirements.txt python -m unittest discover -s scripts -p 'test_configure_*.py'
 
 privacy-staged:
     python3 scripts/check_privacy.py --staged
