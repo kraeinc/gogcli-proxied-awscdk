@@ -29,7 +29,7 @@ Managed account API requests, including Gmail history reads during watch process
 ## Deploy
 
 The source is this repository; the target is
-[`env/gogcli-prd/binding.json`](../env/gogcli-prd/binding.json). Deployment and the
+`env/gogcli-prd/binding.json` (local and ignored). Deployment and the
 first CLI caller use the Developer profile `deployment-profile`. The application's
 roles use the existing `OperatorDeveloperCreatedRoleBoundary`; canonical JDev owns
 that boundary and the Developer identity's scoped `execute-api:Invoke` grant.
