@@ -10,12 +10,14 @@ import sys
 POLICY = json.loads((Path(__file__).resolve().parents[1] / ".privacy-policy.json").read_text())
 TOKENS = re.compile(rb"/(?:home|Users)/[A-Za-z0-9._-]+|[A-Za-z0-9_.+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}|(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}|\b[0-9]{12,13}\b|\b[A-Za-z][A-Za-z0-9_.+-]*\b")
 
+PATH_TOKENS = re.compile(rb"[A-Za-z0-9_.+-]+(?:/[A-Za-z0-9_.+-]+)+")
+
 
 def violations(path, content):
     findings = []
     if path not in POLICY["allowed_paths"] and any(fnmatch.fnmatchcase(path, pattern) for pattern in POLICY["prohibited_paths"]):
         findings.append("private operational file")
-    for token in TOKENS.findall(content):
+    for token in TOKENS.findall(content) + PATH_TOKENS.findall(content):
         token = token.rstrip(b".")
         candidates = {token.lower()}
         domain = token.rsplit(b"@", 1)[-1].lower()
@@ -27,6 +29,15 @@ def violations(path, content):
     return findings
 
 
+def metadata_violations(content):
+    findings = violations("Git metadata", content)
+    for name in re.findall(rb"^(?:author |committer |tagger )?([^<\r\n]+?)\s*<", content, re.MULTILINE):
+        if hashlib.sha256(name.strip().lower()).hexdigest() in POLICY["identifier_sha256"]:
+            if not findings:
+                findings.append("personal or deployment identifier")
+    return findings
+
+
 def git(*args):
     return subprocess.check_output(["git", *args])
 
@@ -34,6 +45,10 @@ def git(*args):
 def scan(staged):
     paths = git("diff", "--cached", "--name-only", "--diff-filter=ACMR", "-z").split(b"\0") if staged else git("ls-files", "-z").split(b"\0")
     failed = False
+    for variable in ["GIT_AUTHOR_IDENT", "GIT_COMMITTER_IDENT"]:
+        if metadata_violations(git("var", variable)):
+            print(f"{variable}: personal or deployment identifier", file=sys.stderr)
+            failed = True
     for raw_path in paths:
         if not raw_path:
             continue
@@ -47,6 +62,10 @@ def scan(staged):
 
 def scan_history(revision):
     failed = False
+    metadata = git("log", revision, "--format=%an <%ae>%n%cn <%ce>%n%B")
+    if metadata_violations(metadata):
+        print("Git commit metadata: personal or deployment identifier", file=sys.stderr)
+        failed = True
     paths = git("log", revision, "--format=", "--name-only", "-z").split(b"\0")
     for raw_path in set(paths):
         path = raw_path.lstrip(b"\n").decode("utf-8", "surrogateescape")
@@ -65,10 +84,11 @@ def scan_history(revision):
                 raise RuntimeError("Could not read Git history object")
             content = process.stdout.read(int(header[2]))
             process.stdout.read(1)
-            if header[1] != b"blob":
+            if header[1] not in [b"blob", b"tag"]:
                 continue
             path = raw_path.decode("utf-8", "surrogateescape") or oid.decode()
-            for finding in violations(path, content):
+            findings = metadata_violations(content) if header[1] == b"tag" else violations(path, content)
+            for finding in findings:
                 if finding == "private operational file":
                     continue
                 print(f"{path}: {finding} in history", file=sys.stderr)
