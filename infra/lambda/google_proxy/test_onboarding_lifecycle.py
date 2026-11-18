@@ -182,7 +182,7 @@ class AccountLifecycleTests(unittest.TestCase):
         self.google.authorization_url.return_value = "https://accounts.google.com/consent"
         self.service = OnboardingService(self.store, self.google, "https://app.example/onboarding/oauth/google/callback")
         self.env = patch.dict(os.environ, {"ONBOARDING_OWNER_CALLERS": '{"owner": "arn:aws:iam::123456789012:role/owner"}',
-            "ONBOARDING_VERIFIER_ROLE_ARN": "arn:aws:iam::123456789012:role/verifier", "GOOGLE_PROJECT_ID": "gogcli-proxy",
+            "ONBOARDING_VERIFIER_ROLE_ARN": "arn:aws:iam::123456789012:role/verifier", "GOOGLE_PROJECT_ID": "gogcli-proxy", "GOOGLE_APPLICATION_ORGANIZATION": "example.com",
             "ONBOARDING_PROPAGATION_SECONDS": "65"})
         self.env.start()
         self.addCleanup(self.env.stop)

@@ -30,9 +30,12 @@ class OnboardingService:
 
     def application(self):
         project = application_project_id()
+        organization = os.environ.get("GOOGLE_APPLICATION_ORGANIZATION", "").strip()
+        if not organization:
+            raise WorkflowError(503, "application_not_configured", "gogcli-proxy is not ready. Contact the operator, then retry.")
         client = self.store.get("CLIENT#" + project) or {}
         return {"projectId": project, "name": os.environ.get("GOOGLE_APPLICATION_NAME", "gogcli-proxy"),
-            "organization": os.environ.get("GOOGLE_APPLICATION_ORGANIZATION", "host9.example.invalid"),
+            "organization": organization,
             "clientConfigured": bool(client.get("secret_ref") and client.get("revision")), "apiConfirmed": client.get("api_confirmed", {})}
 
     def setup(self, owner, session_id=None):

@@ -1,7 +1,6 @@
 """Synthesized AWS contracts; replace only artifact bundling, never resources."""
 import json
 import unittest
-from pathlib import Path
 from unittest.mock import patch
 
 from aws_cdk import App, Environment, aws_lambda as lambda_
@@ -17,10 +16,20 @@ def unbundled_asset(entry):
 class InfrastructureContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.binding = json.loads((Path(__file__).resolve().parents[1] / 'env/gogcli-prd/binding.json').read_text())
+        cls.binding = {'account_id': '123456789012', 'region': 'us-east-1', 'stage': 'prd',
+            'role_prefix': 'fixture', 'ssm_prefix': '/fixture',
+            'ssm_key_arn': 'arn:aws:kms:us-east-1:123456789012:key/00000000-0000-4000-8000-000000000000',
+            'oidc_issuer': 'https://auth.example.com/application/o/fixture/',
+            'oidc_client_id': 'fixture-client', 'owner_group': 'fixture-owners',
+            'owners': [
+                {'sub': 'fixture-owner', 'caller_role_arn': 'arn:aws:iam::123456789012:role/fixture-operation'},
+                {'sub': 'fixture-reviewer', 'caller_role_arn': 'arn:aws:iam::123456789012:role/fixture-reviewer'},
+                {'sub': 'fixture-unmapped'}],
+            'google_application': {'project_id': 'gogcli-proxy', 'name': 'Fixture application',
+                'organization': 'example.com'},
+            'endpoint_enabled': True, 'workers_enabled': True,
+            'public_domain_name': 'proxy.example.com'}
         cls.binding['permissions_boundary_arns'] = {name: f"arn:aws:iam::{cls.binding['account_id']}:policy/{cls.binding['role_prefix']}-internal-{name}-boundary" for name in ('proxy', 'onboarding', 'apigw-logs')}
-        cls.binding.update(endpoint_enabled=True, workers_enabled=True, public_domain_name='host5.example.invalid',
-            public_hosted_zone_id='Z0123456789', public_hosted_zone_name='host8.example.invalid')
         app = App()
         with patch('stacks.google_proxy_api_substack.python_asset', unbundled_asset), \
                 patch('stacks.onboarding_resources.python_asset', unbundled_asset):
