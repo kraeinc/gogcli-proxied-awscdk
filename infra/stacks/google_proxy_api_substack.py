@@ -26,7 +26,7 @@ class GoogleProxyApiProps:
     ssm_prefix: str = "/gogcli-proxy"
     lambda_timeout_seconds: int = 30
     lambda_memory_mb: int = 512
-    role_prefix: str = "gogcli-prd"
+    role_prefix: str = "gogcli"
     permissions_boundary_arns: dict = field(default_factory=dict)
     ssm_key_arn: str = ""
     deployed_artifact: dict = field(default_factory=dict)
@@ -50,7 +50,7 @@ class GoogleProxyApi(Construct):
             self, "RoleBoundary", props.permissions_boundary_arns["proxy"]
         )
         proxy_role = iam.Role(
-            self, "ProxyRole", role_name=f"{props.role_prefix}-proxy",
+            self, "ProxyRole", role_name=f"{props.role_prefix}-internal-proxy",
             assumed_by=iam.ServicePrincipal("lambda.amazonaws.com"),
             permissions_boundary=boundary,
         )
@@ -177,7 +177,7 @@ class GoogleProxyApi(Construct):
         )
 
         gateway_logs_role = iam.Role(
-            self, "GatewayLogsRole", role_name=f"{props.role_prefix}-apigw-logs",
+            self, "GatewayLogsRole", role_name=f"{props.role_prefix}-internal-apigw-logs",
             assumed_by=iam.ServicePrincipal("apigateway.amazonaws.com"),
             permissions_boundary=iam.ManagedPolicy.from_managed_policy_arn(
                 self, "GatewayRoleBoundary", props.permissions_boundary_arns["apigw-logs"]),

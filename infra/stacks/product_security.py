@@ -9,8 +9,8 @@ class ProductSecurityStack(Stack):
         super().__init__(scope, construct_id, **kwargs)
         account, region = self.account, self.region
         prefix = binding["role_prefix"]
-        if not re.fullmatch(r"gogcli-[a-z0-9-]+", prefix):
-            raise ValueError("role_prefix must start with gogcli- and contain lowercase letters, digits or hyphens")
+        if not re.fullmatch(r"gogcli(-[a-z0-9-]+)?", prefix):
+            raise ValueError("role_prefix must be gogcli, optionally extended with lowercase letters, digits or hyphens")
         principal = binding["principal_arn"]
         if not re.fullmatch(r"arn:aws:iam::[0-9]{12}:(?:user|role)/[A-Za-z0-9_+=,.@/-]+", principal):
             raise ValueError("principal_arn must identify one IAM user or role")
@@ -45,7 +45,7 @@ class ProductSecurityStack(Stack):
             f"arn:aws:logs:{region}:{account}:log-group:API-Gateway-Execution-Logs_{api_id}/*:*"]
         log_groups += [arn.removesuffix(":*") for arn in log_groups]
         functions = [f"arn:aws:lambda:{region}:{account}:function:{prefix}-{name}" for name in ("proxy", "onboarding")]
-        runtime_arns = {name: f"arn:aws:iam::{account}:role/{prefix}-{name}" for name in ("proxy", "onboarding", "apigw-logs")}
+        runtime_arns = {name: f"arn:aws:iam::{account}:role/{prefix}-internal-{name}" for name in ("proxy", "onboarding", "apigw-logs")}
         key = binding["ssm_key_arn"]
         kms_condition = {"StringEquals": {"kms:ViaService": f"ssm.{region}.amazonaws.com"}}
         ceilings = {
@@ -70,7 +70,7 @@ class ProductSecurityStack(Stack):
         }
         boundaries = {}
         for name, statements in ceilings.items():
-            boundaries[name] = iam.ManagedPolicy(self, name + "Boundary", managed_policy_name=f"{prefix}-{name}-boundary",
+            boundaries[name] = iam.ManagedPolicy(self, name + "Boundary", managed_policy_name=f"{prefix}-internal-{name}-boundary",
                 statements=statements)
         trust = iam.ArnPrincipal(principal)
         roles = {name: iam.Role(self, name.title(), role_name=f"{prefix}-{name}", assumed_by=trust,

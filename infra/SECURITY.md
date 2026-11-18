@@ -1,10 +1,14 @@
 # Product-owned access
 
-`security_app.py` owns the deployment, inspection, and operation roles and three
-workload permissions boundaries. It uses direct deployment credentials through
-`CliCredentialsStackSynthesizer`; it does not assume CDK deployment or
-CloudFormation execution roles. The application stack owns its separate proxy,
-onboarding, and API Gateway logging execution roles and their inline permissions. The asset
+`security_app.py` owns the deployment, inspection, and operation entry roles
+(`<role_prefix>-deployment`, `-inspection`, `-operation`, assumed by principals
+outside the account) and three workload permissions boundaries. It uses direct
+deployment credentials through `CliCredentialsStackSynthesizer`; it does not
+assume CDK deployment or CloudFormation execution roles. The application stack
+owns its separate proxy, onboarding, and API Gateway logging execution roles and
+their inline permissions; these carry the `-internal-` label
+(`<role_prefix>-internal-proxy`, `-internal-onboarding`, `-internal-apigw-logs`)
+because only AWS services inside the account assume them. The asset
 bootstrap stack also owns the AWS-managed API Gateway service-linked role needed
 for a regional custom domain.
 
@@ -36,7 +40,7 @@ identify the actual destination, not the legacy account:
 | Field | Value |
 | --- | --- |
 | `account_id`, `region` | Dedicated account ID and `us-east-2` |
-| `role_prefix` | Product prefix such as `gogcli-prd` |
+| `role_prefix` | Product prefix such as `gogcli`; no environment suffix — the account runs one product |
 | `principal_arn` | One approved IAM user or role ARN |
 | `application_stack_name` | `GogcliGoogleProxyApi` |
 | `ssm_prefix`, `stage` | `/gogcli-proxy`, `prd` |

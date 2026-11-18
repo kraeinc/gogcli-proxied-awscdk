@@ -14,7 +14,7 @@ This Python AWS CDK app deploys the `gogcli-prd` environment into Operator accou
 - SSM SecureString storage for Google client secrets, refresh tokens, and owner
   OIDC credentials using the existing AWS-managed SSM key. DynamoDB and queue
   messages contain references and operation metadata, not Google secrets.
-- Explicit bounded `gogcli-prd-*` application roles, caller policies,
+- Explicit bounded `gogcli-internal-*` application roles, caller policies,
   and CloudWatch alarms for worker errors, stream age, and dead-letter backlog.
 
 The gogcli client is already wired to:

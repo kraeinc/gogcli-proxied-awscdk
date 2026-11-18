@@ -18,7 +18,7 @@ class InfrastructureContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.binding = json.loads((Path(__file__).resolve().parents[1] / 'env/gogcli-prd/binding.json').read_text())
-        cls.binding['permissions_boundary_arns'] = {name: f"arn:aws:iam::{cls.binding['account_id']}:policy/gogcli-prd-{name}-boundary" for name in ('proxy', 'onboarding', 'apigw-logs')}
+        cls.binding['permissions_boundary_arns'] = {name: f"arn:aws:iam::{cls.binding['account_id']}:policy/{cls.binding['role_prefix']}-internal-{name}-boundary" for name in ('proxy', 'onboarding', 'apigw-logs')}
         cls.binding.update(endpoint_enabled=True, workers_enabled=True, public_domain_name='host5.example.invalid',
             public_hosted_zone_id='Z0123456789', public_hosted_zone_name='host8.example.invalid')
         app = App()
@@ -54,8 +54,8 @@ class InfrastructureContractTests(unittest.TestCase):
         self.assertEqual(3, len(roles))
         for value in roles.values():
             properties = value['Properties']
-            self.assertTrue(properties['RoleName'].startswith(self.binding['role_prefix'] + '-'))
-            name = properties['RoleName'].removeprefix(self.binding['role_prefix'] + '-')
+            self.assertTrue(properties['RoleName'].startswith(self.binding['role_prefix'] + '-internal-'))
+            name = properties['RoleName'].removeprefix(self.binding['role_prefix'] + '-internal-')
             self.assertEqual(self.binding['permissions_boundary_arns'][name], properties['PermissionsBoundary'])
 
     def test_download_storage_is_private_expiring_and_scoped_to_proxy(self):

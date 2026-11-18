@@ -45,7 +45,8 @@ class GoogleOnboarding(Construct):
         dlq = sqs.Queue(self, "DeadLetters", encryption=sqs.QueueEncryption.SQS_MANAGED, retention_period=Duration.days(14), visibility_timeout=Duration.seconds(240))
         queue = sqs.Queue(self, "Verification", encryption=sqs.QueueEncryption.SQS_MANAGED, visibility_timeout=Duration.seconds(240),
             retention_period=Duration.days(14), dead_letter_queue=sqs.DeadLetterQueue(queue=dlq, max_receive_count=5))
-        role = iam.Role(self, "Role", role_name=f"{role_prefix}-onboarding",
+        verifier_role_arn = f"arn:aws:iam::{binding['account_id']}:role/{role_prefix}-internal-onboarding"
+        role = iam.Role(self, "Role", role_name=f"{role_prefix}-internal-onboarding",
             assumed_by=iam.ServicePrincipal("lambda.amazonaws.com"),
             permissions_boundary=iam.ManagedPolicy.from_managed_policy_arn(self, "Boundary", binding["permissions_boundary_arns"]["onboarding"]))
         log_group = logs.LogGroup(self, "Logs", log_group_name=f"/aws/lambda/{role_prefix}-onboarding",
@@ -88,7 +89,7 @@ class GoogleOnboarding(Construct):
         queue.grant_send_messages(role)
         parameter_arn = f"arn:aws:ssm:{stack.region}:{stack.account}:parameter"
         caller_arns = sorted(set(mapped_callers.values()))
-        allow_paths = [prefix + "/allow/" + encoded(arn) for arn in caller_arns + [f"arn:aws:iam::{binding['account_id']}:role/{role_prefix}-onboarding"]]
+        allow_paths = [prefix + "/allow/" + encoded(arn) for arn in caller_arns + [verifier_role_arn]]
         role.add_to_policy(iam.PolicyStatement(actions=["ssm:GetParameter", "ssm:PutParameter"],
             resources=[parameter_arn + p for p in [prefix + "/google/accounts/*", prefix + "/policy/account/*", prefix + "/onboarding/*", *allow_paths]]))
         role.add_to_policy(iam.PolicyStatement(actions=["ssm:DeleteParameter"], resources=[parameter_arn + prefix + "/onboarding/" + p + "/*" for p in ("candidates", "callbacks", "attempts", "owner-logins")] + [parameter_arn + prefix + suffix for suffix in ("/google/accounts/*", "/policy/account/*")]))
@@ -107,7 +108,7 @@ class GoogleOnboarding(Construct):
         # would try to recreate the already-named parameter and fail the deploy.
         seeds = [("Cli" if arn == operation_role_arn else "Caller" + encoded(arn)[-8:].replace("-", "0").replace("_", "1"), arn,
                   service_policy(list(SCOPES_BY_SERVICE))) for arn in caller_arns]
-        seeds.append(("Verifier", f"arn:aws:iam::{binding['account_id']}:role/{role_prefix}-onboarding", verifier_policy()))
+        seeds.append(("Verifier", verifier_role_arn, verifier_policy()))
         for label, caller, policy in seeds:
             ssm.StringParameter(self, label + "Policy", parameter_name=prefix + "/policy/caller/" + encoded(caller),
                 string_value=json.dumps(policy))

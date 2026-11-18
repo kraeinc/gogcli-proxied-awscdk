@@ -9,7 +9,7 @@ from stacks.product_security import ProductSecurityStack
 
 class ProductSecurityTests(unittest.TestCase):
     def binding(self):
-        return dict(role_prefix="gogcli-prd", principal_arn="arn:aws:iam::111111111111:user/operator",
+        return dict(role_prefix="gogcli", principal_arn="arn:aws:iam::111111111111:user/operator",
             application_stack_name="GogcliGoogleProxyApi", ssm_prefix="/gogcli-proxy", stage="prd",
             ssm_key_arn="arn:aws:kms:us-east-2:222222222222:key/test-key",
             asset_bucket_arn="arn:aws:s3:::cdk-assets-222222222222-us-east-2",
@@ -32,13 +32,14 @@ class ProductSecurityTests(unittest.TestCase):
         template = self.template(self.binding())
         resources = template['Resources']
         roles = [value for value in resources.values() if value['Type'] == 'AWS::IAM::Role']
-        self.assertEqual({'gogcli-prd-deployment', 'gogcli-prd-inspection', 'gogcli-prd-operation'},
+        self.assertEqual({'gogcli-deployment', 'gogcli-inspection', 'gogcli-operation'},
             {value['Properties']['RoleName'] for value in roles})
         for role in roles:
             self.assertEqual('Retain', role['DeletionPolicy'])
             self.assertEqual([{'Action': 'sts:AssumeRole', 'Effect': 'Allow', 'Principal':
                 {'AWS': self.binding()['principal_arn']}}], role['Properties']['AssumeRolePolicyDocument']['Statement'])
-        self.assertEqual(3, sum(value['Type'] == 'AWS::IAM::ManagedPolicy' for value in resources.values()))
+        self.assertEqual({'gogcli-internal-proxy-boundary', 'gogcli-internal-onboarding-boundary', 'gogcli-internal-apigw-logs-boundary'},
+            {value['Properties']['ManagedPolicyName'] for value in resources.values() if value['Type'] == 'AWS::IAM::ManagedPolicy'})
         self.assertEqual([], self.role_statements(template, '-operation'))
         self.assertNotIn('Jdev', json.dumps(template))
 
@@ -50,7 +51,7 @@ class ProductSecurityTests(unittest.TestCase):
         for statement in iam_statements:
             rendered = json.dumps(statement['Resource'])
             self.assertNotIn('*', rendered)
-            self.assertTrue(any(name in rendered for name in ('-proxy', '-onboarding', '-apigw-logs')))
+            self.assertTrue(any(name in rendered for name in ('-internal-proxy', '-internal-onboarding', '-internal-apigw-logs')))
             self.assertFalse(any(action in action_list(statement) for action in (
                 'iam:UpdateAssumeRolePolicy', 'iam:DeleteRolePermissionsBoundary', 'iam:CreatePolicy',
                 'iam:CreatePolicyVersion', 'iam:AttachRolePolicy')))
