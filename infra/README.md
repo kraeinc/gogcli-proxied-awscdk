@@ -1,13 +1,13 @@
 # gogcli-proxy Infra (CDK)
 
-This Python AWS CDK app deploys the `gogcli-prd` environment into Operator account
-`123456789004`, region `us-east-2`, with API Gateway stage `prd`:
+This Python AWS CDK app deploys the Google API proxy into the account and
+region selected by the local environment binding:
 
 - Two Python Lambdas: the Google API proxy and the owner-onboarding handler. The
   latter also dispatches DynamoDB stream events and runs delayed verification.
 - One API Gateway REST API: managed Google routes require IAM SigV4 and a
   usage-plan API key; `/prd/onboarding/` uses its own owner session through the
-  existing `host1.example.invalid` Authentik service.
+  configured Authentik service.
 - A retained DynamoDB metadata/operation table with a stream and TTL, plus an
   encrypted SQS verification queue and dead-letter queue. Closing the account page
   does not interrupt saved account operations.
@@ -30,7 +30,7 @@ Managed account API requests, including Gmail history reads during watch process
 
 The source is this repository; the target is
 [`env/gogcli-prd/binding.json`](../env/gogcli-prd/binding.json). Deployment and the
-first CLI caller use the Developer profile `operator-config-11`. The application's
+first CLI caller use the Developer profile `deployment-profile`. The application's
 roles use the existing `OperatorDeveloperCreatedRoleBoundary`; canonical JDev owns
 that boundary and the Developer identity's scoped `execute-api:Invoke` grant.
 This CDK app does not modify those protected roles or redeploy Authentik.
@@ -42,13 +42,13 @@ uv venv infra/.venv
 uv pip install --python infra/.venv/bin/python -r infra/requirements.txt
 export AWS_REGION=us-east-2
 
-aws --profile operator-config-11 --region us-east-2 sts get-caller-identity
+aws --profile deployment-profile --region us-east-2 sts get-caller-identity
 cdk synth GogcliGoogleProxyApi \
   --app 'infra/.venv/bin/python infra/app.py' \
-  --context environment=gogcli-prd --profile operator-config-11
+  --context environment=gogcli-prd --profile deployment-profile
 cdk deploy GogcliGoogleProxyApi \
   --app 'infra/.venv/bin/python infra/app.py' \
-  --context environment=gogcli-prd --profile operator-config-11 \
+  --context environment=gogcli-prd --profile deployment-profile \
   --outputs-file env/gogcli-prd/access.json
 ```
 
@@ -86,7 +86,7 @@ Apply this list through the canonical JDev runner to both the Developer identity
 policy and created-role boundary. Source:
 `/Users/Operator/Projects/development/jdevaws/templates/jdev-target-access.yaml`.
 Target: the existing `operator-config-9` stack in **us-east-1**, account
-`123456789004`, explicit manifest profile `operator-config-10`. Proxy resources
+`123456789012`, explicit manifest profile `operator-config-10`. Proxy resources
 are in **us-east-2**. Update only Operator production:
 
 ```bash
@@ -103,8 +103,7 @@ baseline-version differences.
 
 ## Stable public address
 
-The production binding fixes `public_domain_name` under the existing `host8.example.invalid`
-Route53 zone. The stack owns a DNS-validated regional ACM certificate, API
+The local binding fixes `public_domain_name` under its configured Route53 zone. The stack owns a DNS-validated regional ACM certificate, API
 Gateway custom domain, `/prd` base-path mapping, and DNS alias. All public setup,
 callback, and proxy URLs use that hostname; the underlying API ID remains an IAM
 invocation resource, not an OAuth registration address.
@@ -128,7 +127,7 @@ uv run --with requests --with boto3 python scripts/configure_owner_login.py
 
 The script reads the concrete binding and CDK outputs, creates or updates the
 app-specific confidential provider/application, restricts its owner group to
-Operator's `host7.example.invalid` account, and reuses the shared authorization/invalidation
+the configured owner account, and reuses the shared authorization/invalidation
 flows and signing key. It registers `OwnerCallbackUrl` exactly. Authentik API
 access comes from the installed credential catalog; the client credentials are
 saved back to that catalog and SSM SecureString without being printed. Its final
@@ -137,27 +136,18 @@ membership.
 
 ## Configure the Google application
 
-The source is this checkout; the target is the existing `gogcli-prd` binding
-(account `123456789004`, `us-east-2`, explicit profile `operator-config-11`).
-The singular `google_application` binding identifies project `gogcli-proxy`,
-number `1234567890123`, owned by `host9.example.invalid`. This project and its OAuth
-application already exist. Use the downloaded **Web application** client JSON;
-keep it outside the repository.
+The local binding identifies the target environment and Google application.
+Use its downloaded **Web application** client JSON; keep it outside the repository.
 
 Before provisioning, inspect the existing Google Console configuration and
 confirm the selected service APIs are enabled, the scope list includes the
 selected services, and the intended audience can approve consent. Confirm the
-Web client's redirect URI is exactly `GoogleCallbackUrl` from `access.json`:
-
-```text
-https://host4.example.invalid/prd/onboarding/oauth/google/callback
-```
-
-The callback is permanent across API replacements. Register no generated API
-hostname. Google authorized-domain settings for this callback use `host8.example.invalid`;
-the project organization owner is `host9.example.invalid`. JSON and imported metadata
+Web client's redirect URI is exactly `GoogleCallbackUrl` from local
+`access.json`. The callback is permanent across API replacements; register no
+generated API hostname. The callback domain and Google project owner are
+separate configuration values. JSON and imported metadata
 cannot establish API enablement, publishing status, test users, or Workspace approval. Record only settings actually observed.
-For the currently confirmed Gmail/Drive setup and a confirmed Testing status:
+For Gmail/Drive setup after confirming Testing status:
 
 ```bash
 just configure-google-application /absolute/path/to/client.json gmail,drive testing
@@ -222,12 +212,12 @@ For the first CLI caller, fetch the usage-plan key using `ApiKeyId` from the
 generated access record:
 
 ```bash
-aws --profile operator-config-11 --region us-east-2 apigateway get-api-key \
+aws --profile deployment-profile --region us-east-2 apigateway get-api-key \
   --api-key '<ApiKeyId>' --include-value --query value --output text
 ```
 
 Configure `proxy_base_url` from `ProxyBaseUrl`, `proxy_api_key` from the returned
-value, `aws_profile` as `operator-config-11`, and a verified `default_account` in the
+value, `aws_profile` as `deployment-profile`, and a verified `default_account` in the
 CLI's `config.json`. Run `bin/gog config path` to locate it. Google credentials
 stay on the server; the account guide provides the
 first read-only CLI checks. Signed `GET /proxy/v1/accounts` returns only metadata
@@ -352,7 +342,7 @@ documents fail closed. Provisioning creates an empty default-deny document.
       "priority": 100,
       "match": {
         "methods": ["GET"],
-        "accounts": ["account10@example.invalid"],
+        "accounts": ["user@example.invalid"],
         "hosts": ["gmail.googleapis.com"],
         "path_regex": "^/gmail/v1/users/me/(labels|messages|threads)(/.*)?$",
         "query": {
@@ -361,7 +351,7 @@ documents fail closed. Provisioning creates an empty default-deny document.
       },
       "constraints": {
         "max_request_bytes": 1048576,
-        "require_account_domain": ["host3.example.invalid"]
+        "require_account_domain": ["example.invalid"]
       },
       "on_match": {
         "emit_event": true,
@@ -400,8 +390,6 @@ create permission denied or absent in the caller document.
 This replaces the obsolete shared priority-sorted override semantics. Before
 rollout, inspect actual nonsecret policies and account metadata; explicitly
 convert any configuration relying on account allows overriding caller denies.
-The preflight for this stabilization found no installed remote accounts or
-account policy documents.
 
 Policy caches cannot exceed 30 seconds. Allowlist/account configuration caches
 cannot exceed 60 seconds; environment values may shorten these bounds but cannot

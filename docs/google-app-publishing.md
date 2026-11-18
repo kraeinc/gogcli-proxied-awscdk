@@ -6,18 +6,16 @@ Google describes personal-use applications as fewer than 100 users known persona
 
 ## Public pages and Branding
 
-Release verified September 30, 2026 from commit `29daa2f8`: both public URLs below return HTTP 200 without authentication, exact committed assets and both Lambda ZIPs match, and stack/Lambda updates completed successfully. Account API sign-in and permanent OAuth callbacks remain unchanged. The operator must still save Branding and switch Google publishing to **In production**; AWS deployment does not change Google publishing status.
-
 Deploy the public page change before supplying these URLs to Google. Pages must return HTTP 200 without authentication.
 
 | Branding field | Value |
 | --- | --- |
 | App name | `gogcli-proxy` |
-| User support email | `account5@example.invalid` |
-| Homepage | `https://host4.example.invalid/prd/onboarding/about` |
-| Privacy policy | `https://host4.example.invalid/prd/onboarding/privacy` |
-| Authorized domain | `host8.example.invalid` |
-| Developer contact email | `account5@example.invalid` |
+| User support email | Operator-provided support address |
+| Homepage | `SetupUrl` from local deployment outputs with `about` appended |
+| Privacy policy | `SetupUrl` from local deployment outputs with `privacy` appended |
+| Authorized domain | The deployed callback domain |
+| Developer contact email | Operator-provided contact address |
 | Logo / terms URL | Leave blank |
 
 Open https://console.cloud.google.com/auth/branding?project=gogcli-proxy, enter the fields, and save. Then open https://console.cloud.google.com/auth/audience?project=gogcli-proxy. Keep **External**, choose **Publish app**, and confirm the resulting status is **In production**. Do not change project or create another client.

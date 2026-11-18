@@ -1,10 +1,8 @@
 # Connect your Google accounts
 
-Open [Google account connections](https://host4.example.invalid/prd/onboarding/)
-and sign in through Authentik with the designated owner account. Saved progress
-survives closing the page. The application is **gogcli-proxy**, owned by
-**host9.example.invalid**. The operator prepares its Google configuration separately;
-see the [operator runbook](https://github.com/Frunk-Foundation/gogcli-proxied-awscdk/blob/main/infra/README.md#configure-the-google-application).
+Open the account connections URL supplied by the operator and sign in through
+Authentik. Saved progress survives closing the page. The operator prepares the
+Google configuration separately; see the [operator runbook](../infra/README.md#configure-the-google-application).
 
 ## Connect accounts
 
@@ -19,7 +17,7 @@ your authorized tools. If tool access was already paused, connection preserves
 that pause; use **Resume tool access** when you want to restore it.
 
 Add addresses individually or paste a comma/newline-separated list in **Add
-accounts**. Eight is the current roster, not a limit. New accounts select Gmail,
+accounts**. New accounts select Gmail,
 Drive, and Calendar by default. You can uncheck a service before connecting.
 Existing accounts keep their selected and installed services. For an existing
 connection without Calendar, select Calendar and reconnect (in this browser or
@@ -45,7 +43,7 @@ establish a connection to this proxy.
 4. Check the account name and services, then choose **Continue to Google** and approve access.
 5. The connection page shows progress and the result. The owner dashboard shows the same saved progress.
 
-The target profile does not need an `host1.example.invalid` login. The link permits only
+The target profile does not need an owner login. The link permits only
 this account's connection; it does not open the owner dashboard or its controls.
 The link is valid for 24 hours and binds to the first profile that opens it.
 Reopen in that same profile to continue. If it expires, is opened in the wrong
@@ -118,16 +116,9 @@ Google account and application grant.
 
 Build this repository with `make build`. Upstream Homebrew/Go binaries do not
 contain the proxy transport. `bin/gog --version` identifies this fork and build.
-Run `bin/gog config path`, then merge these fields into its `config.json`:
-
-```json
-{
-  "proxy_base_url": "https://host4.example.invalid/prd/",
-  "proxy_api_key": "<owner-provided usage-plan key>",
-  "aws_profile": "operator-config-11",
-  "default_account": "account1@example.invalid"
-}
-```
+Run `bin/gog config path` and set the operator-provided proxy URL, usage-plan
+key, AWS profile, and default account in its `config.json`. Keep this local
+configuration out of Git.
 
 Both an authorized AWS session and usage-plan key are required. Obtain the key
 through the project operator's existing access procedure; do not configure local
@@ -135,8 +126,8 @@ Google credentials. Account diagnostics inspect remote connections:
 
 ```bash
 bin/gog auth list --json
-bin/gog --account account1@example.invalid auth doctor --check --json
-bin/gog --account account1@example.invalid --readonly drive ls --max 1 --json
+bin/gog auth doctor --check --json
+bin/gog --readonly drive ls --max 1 --json
 ```
 
 `auth add`, `auth setup`, and `auth manage` direct you to the hosted owner page.

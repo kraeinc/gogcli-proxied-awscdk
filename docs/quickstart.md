@@ -16,10 +16,10 @@ See [Install](install.md) for the source repository and update procedure.
 
 ## 2. Connect Google accounts remotely
 
-Open the [owner account page](https://host4.example.invalid/prd/onboarding/).
+Open the [owner account page](https://example.invalid/prd/onboarding/).
 The [account guide](account-onboarding.md) walks through the existing Google
 project, its hosted Web client, service selection, and Google consent. Start
-with `account1@example.invalid`. Each account approves Gmail, Drive, or both.
+with `user@example.invalid`. Each account approves Gmail, Drive, or both.
 
 The page saves progress remotely and separates installed access, latest attempts,
 and timestamped checks. **Allow my tools to use this account** explicitly enables
@@ -43,8 +43,8 @@ only when remote inventory contains exactly one visible account.
 
 ```bash
 bin/gog auth list --json
-bin/gog --account account1@example.invalid auth doctor --check --json
-bin/gog --account account1@example.invalid --readonly drive ls --max 1 --json
+bin/gog --account user@example.invalid auth doctor --check --json
+bin/gog --account user@example.invalid --readonly drive ls --max 1 --json
 ```
 
 Ordinary inventory is metadata only. Live checks make bounded service reads
