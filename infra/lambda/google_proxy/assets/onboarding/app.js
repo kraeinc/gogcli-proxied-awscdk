@@ -132,7 +132,7 @@ function renderLink(account, op, row, busy, status) {
     element('p', 'Links are shown only when created. If you no longer have it, create a new one; the old link stops working.', panel).className = 'small';
     replace('Create new link'); return cancel();
   }
-  element('p', 'Open this link in the browser profile signed in to ' + account.email + '. No host1.example.invalid sign-in is needed there. Expires ' + time(op.connection_expires_at) + '.', panel);
+  element('p', 'Open this link in the browser profile signed in to ' + account.email + '. No owner sign-in is needed there. Expires ' + time(op.connection_expires_at) + '.', panel);
   const copyRow = element('div', '', panel); copyRow.className = 'copy-row';
   const field = element('input', '', copyRow); field.className = 'connection-url'; field.readOnly = true; field.value = url; field.setAttribute('aria-label', 'Connection link for ' + account.email); field.dataset.focus = 'connection-url';
   field.addEventListener('focus', () => field.select());

@@ -5,7 +5,7 @@ Homebrew packages, Docker images, and release archives install a different binar
 This fork has no maintained binary distribution yet.
 
 ```bash
-git clone https://github.com/Frunk-Foundation/gogcli-proxied-awscdk.git
+git clone https://github.com/kraeinc/gogcli-proxied-awscdk.git
 cd gogcli-proxied-awscdk
 make build
 ./bin/gog --version
@@ -26,7 +26,7 @@ proxy endpoint, usage-plan API key, and authorized AWS credentials.
 bin/gog config path
 bin/gog auth status --json
 bin/gog auth list --json
-bin/gog --account account1@example.invalid auth doctor --check --json
+bin/gog --account user@example.invalid auth doctor --check --json
 ```
 
 Run these checks from the actual process environment used by your scripts or

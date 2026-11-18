@@ -2,7 +2,7 @@
 
 ![gogcli banner](docs/assets/readme-banner.jpg)
 
-[![CI](https://img.shields.io/github/actions/workflow/status/Frunk-Foundation/gogcli-proxied-awscdk/ci.yml?branch=main&style=flat-square&label=ci)](https://github.com/Frunk-Foundation/gogcli-proxied-awscdk/actions/workflows/ci.yml)
+[![CI](https://img.shields.io/github/actions/workflow/status/Frunk-Foundation/gogcli-proxied-awscdk/ci.yml?branch=main&style=flat-square&label=ci)](https://github.com/kraeinc/gogcli-proxied-awscdk/actions/workflows/ci.yml)
 [![Go](https://img.shields.io/github/go-mod/go-version/openclaw/gogcli?style=flat-square)](https://go.dev/)
 [![License](https://img.shields.io/github/license/openclaw/gogcli?style=flat-square)](LICENSE)
 
@@ -16,7 +16,7 @@ gog --readonly gmail search 'is:unread newer_than:7d' --max 10 --json
 gog --readonly drive audit sharing --parent <folderId> --json
 ```
 
-Connect accounts and choose services on the [owner account page](https://host4.example.invalid/prd/onboarding/).
+Connect accounts and choose services on the [owner account page](https://example.invalid/prd/onboarding/).
 The proxy can restrict each caller independently of Google's account consent.
 
 ## Install
@@ -37,7 +37,7 @@ This fork routes managed account Google API calls through an AWS service that ho
 
 ```json
 {
-  "proxy_base_url": "https://host4.example.invalid/prd/",
+  "proxy_base_url": "https://example.invalid/prd/",
   "proxy_api_key": "<api-key>",
   "aws_profile": "<authorized-client-profile>",
   "default_account": "you@example.com"

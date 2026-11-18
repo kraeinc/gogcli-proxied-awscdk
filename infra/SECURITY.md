@@ -14,8 +14,7 @@ for a regional custom domain.
 
 The security stack is administered using the dedicated account's initial
 `OrganizationAccountAccessRole`. Its exact trusted principal is supplied in the
-binding. Operator's existing product-role precedent uses
-`arn:aws:iam::123456789002:user/Operator`. A role trust policy does not grant the
+binding. A role trust policy does not grant the
 principal permission to assume it; publish the corresponding identity-side grants
 and local profiles through the identity owner's configuration.
 
@@ -48,7 +47,7 @@ identify the actual destination, not the legacy account:
 | `asset_bucket_arn` | Existing destination CDK asset bucket ARN |
 | `public_domain_name` | Existing permanent product hostname |
 
-The shared `host8.example.invalid` parent zone remains centrally managed. Certificate validation
+The shared parent DNS zone remains centrally managed. Certificate validation
 and the public alias are managed there during cutover. The application owns its
 certificate, custom domain, and mapping; it does not write the shared DNS zone.
 `endpoint_enabled` controls domain creation during handoff, and `workers_enabled`
@@ -89,6 +88,5 @@ cdk synth GogcliProductSecurity --app 'uv run --python 3.11 --with-requirements 
 ```
 
 For CDK CLI deployment, pass the same Python entrypoint/context with the explicit
-destination administrator profile. The current production binding and security outputs are recorded under
-`env/gogcli-prd`. Entry roles and boundaries are retained on stack deletion and
+destination administrator profile. Keep concrete bindings and generated security outputs local and ignored. Entry roles and boundaries are retained on stack deletion and
 require explicit cleanup when retiring the product account.

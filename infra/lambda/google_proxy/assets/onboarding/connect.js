@@ -32,7 +32,7 @@ function render(op) {
   $('continueGoogle').disabled = busy;
   const failures = { identity_mismatch: 'Google approved a different account. This connection requires ' + op.email + '.', missing_service_permission: 'Google did not approve every selected service.', consent_denied: 'Google approval was canceled.', consent_expired: 'Google approval expired.', connection_link_expired: 'This connection link expired.', refresh_required: 'Google did not provide the authorization needed to keep this account connected.' };
   status((expired ? (op.phase === 'awaiting_connection' ? 'This connection link expired.' : 'Google approval expired.') : '') || (connected ? 'Your account is connected. You can close this tab.' : failures[op.errorCode] || op.safeMessage || (terminal ? 'This connection did not complete.' : phases[op.phase] || 'Connection in progress…')), terminal || expired);
-  recovery(terminal || expired ? 'Ask the account owner for a new connection link. No sign-in to host1.example.invalid is needed in this browser profile.' : '');
+  recovery(terminal || expired ? 'Ask the account owner for a new connection link. No owner sign-in is needed in this browser profile.' : '');
   clearTimeout(timer);
   if (!connected && ['accepted', 'running', 'applying'].includes(op.status)) timer = setTimeout(load, 5000);
 }

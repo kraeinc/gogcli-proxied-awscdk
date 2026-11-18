@@ -48,5 +48,5 @@ Those account enrollment commands are absent from this fork's managed command
 tree. Unrelated Google Cloud API-key or Pub/Sub infrastructure credentials remain
 scoped to their own consumers.
 
-See [proxy infrastructure](https://github.com/Frunk-Foundation/gogcli-proxied-awscdk/blob/main/infra/README.md) for operator policies and
+See [proxy infrastructure](https://github.com/kraeinc/gogcli-proxied-awscdk/blob/main/infra/README.md) for operator policies and
 published integration facts.

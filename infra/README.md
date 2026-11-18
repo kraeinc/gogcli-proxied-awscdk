@@ -1,13 +1,13 @@
 # gogcli-proxy Infra (CDK)
 
-This Python AWS CDK app deploys the `gogcli-prd` environment into Operator account
-`123456789003`, region `us-east-2`, with API Gateway stage `prd`:
+This Python AWS CDK app deploys the Google API proxy into the account and
+region selected by the local environment binding:
 
 - Two Python Lambdas: the Google API proxy and the owner-onboarding handler. The
   latter also dispatches DynamoDB stream events and runs delayed verification.
 - One API Gateway REST API: managed Google routes require IAM SigV4 and a
   usage-plan API key; `/prd/onboarding/` uses its own owner session through the
-  existing `host1.example.invalid` Authentik service.
+  configured Authentik service.
 - A retained DynamoDB metadata/operation table with a stream and TTL, plus an
   encrypted SQS verification queue and dead-letter queue. Closing the account page
   does not interrupt saved account operations.
@@ -43,8 +43,6 @@ npx --yes aws-cdk@2.1148.1 deploy GogcliGoogleProxyApi \
   --require-approval never --outputs-file env/gogcli-prd/access.json
 ```
 
-The deployed migration binding pins the exact existing Lambda ZIP in the destination
-asset bucket. A future software release must replace that artifact deliberately.
 The first deployment supplies `ClientApiKeyValue` securely; routine updates reuse
 that NoEcho CloudFormation parameter. Never put its value in tracked files.
 The stack uses `CliCredentialsStackSynthesizer` and product-owned runtime roles.
@@ -77,8 +75,7 @@ state-resource replacement. The application no longer depends on JDev grants.
 
 ## Stable public address
 
-The production binding fixes `public_domain_name` under the shared `host8.example.invalid`
-Route53 zone. The application owns a retained DNS-validated regional certificate,
+The local binding fixes `public_domain_name` under its configured Route53 zone. The application owns a retained DNS-validated regional certificate,
 API Gateway custom domain, and `/prd` mapping. The shared zone's validation CNAME
 and alias are managed separately. All public URLs preserve the existing hostname.
 
@@ -97,7 +94,7 @@ uv run --with requests --with boto3 python scripts/configure_owner_login.py
 
 The script reads the concrete binding and CDK outputs, creates or updates the
 app-specific confidential provider/application, and sets its owner group to
-exactly the usernames in `binding.owners[]` (today just `host7.example.invalid`). The
+exactly the usernames in `binding.owners[]`. The
 provider issues `sub_mode=user_uuid`, so the script writes each member's Authentik
 UUID back into `binding.owners[].sub` — the value the runtime owner→caller map
 (`ONBOARDING_OWNER_CALLERS`) and account ownership are keyed on. It reuses the
@@ -112,27 +109,19 @@ re-run this script, then redeploy.
 
 ## Configure the Google application
 
-The source is this checkout; the target is the existing `gogcli-prd` binding
-(account `123456789003`, `us-east-2`, explicit profile `gogcli-live-operation`).
-The singular `google_application` binding identifies project `gogcli-proxy`,
-number `1234567890123`, owned by `host9.example.invalid`. This project and its OAuth
-application already exist. Use the downloaded **Web application** client JSON;
-keep it outside the repository.
+The local binding identifies the target environment and its Google application.
+Use its downloaded **Web application** client JSON; keep the file outside the
+repository.
 
 Before provisioning, inspect the existing Google Console configuration and
 confirm the selected service APIs are enabled, the scope list includes the
 selected services, and the intended audience can approve consent. Confirm the
-Web client's redirect URI is exactly `GoogleCallbackUrl` from `access.json`:
-
-```text
-https://host4.example.invalid/prd/onboarding/oauth/google/callback
-```
-
-The callback is permanent across API replacements. Register no generated API
-hostname. Google authorized-domain settings for this callback use `host8.example.invalid`;
-the project organization owner is `host9.example.invalid`. JSON and imported metadata
+Web client's redirect URI is exactly `GoogleCallbackUrl` from local
+`access.json`. The callback is permanent across API replacements; register no
+generated API hostname. The callback domain and Google project owner are
+separate configuration values. JSON and imported metadata
 cannot establish API enablement, publishing status, test users, or Workspace approval. Record only settings actually observed.
-For the currently confirmed Gmail/Drive setup and a confirmed Testing status:
+For Gmail/Drive setup after confirming Testing status:
 
 ```bash
 just configure-google-application /absolute/path/to/client.json gmail,drive testing
@@ -353,7 +342,7 @@ documents fail closed. Provisioning creates an empty default-deny document.
       "priority": 100,
       "match": {
         "methods": ["GET"],
-        "accounts": ["account10@example.invalid"],
+        "accounts": ["user@example.invalid"],
         "hosts": ["gmail.googleapis.com"],
         "path_regex": "^/gmail/v1/users/me/(labels|messages|threads)(/.*)?$",
         "query": {
@@ -362,7 +351,7 @@ documents fail closed. Provisioning creates an empty default-deny document.
       },
       "constraints": {
         "max_request_bytes": 1048576,
-        "require_account_domain": ["host3.example.invalid"]
+        "require_account_domain": ["example.invalid"]
       },
       "on_match": {
         "emit_event": true,
@@ -401,8 +390,6 @@ create permission denied or absent in the caller document.
 This replaces the obsolete shared priority-sorted override semantics. Before
 rollout, inspect actual nonsecret policies and account metadata; explicitly
 convert any configuration relying on account allows overriding caller denies.
-The preflight for this stabilization found no installed remote accounts or
-account policy documents.
 
 Policy caches cannot exceed 30 seconds. Allowlist/account configuration caches
 cannot exceed 60 seconds; environment values may shorten these bounds but cannot

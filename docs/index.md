@@ -12,8 +12,8 @@ an authorized AWS caller and usage-plan API key for signed requests.
 
 ```bash
 bin/gog auth list --json
-bin/gog --account account1@example.invalid auth doctor --check --json
-bin/gog --account account1@example.invalid --readonly drive ls --max 1 --json
+bin/gog --account user@example.invalid auth doctor --check --json
+bin/gog --account user@example.invalid --readonly drive ls --max 1 --json
 ```
 
 ## What this fork provides
@@ -35,7 +35,7 @@ transfer is outside this deployment's contract.
 - [Quickstart](quickstart.md): build, connect, configure, and check.
 - [Account connections](account-onboarding.md): Connect accounts, recover connections, and remove access.
 - [Managed authentication](auth-clients.md): Google authorization and caller access.
-- [Infrastructure](https://github.com/Frunk-Foundation/gogcli-proxied-awscdk/blob/main/infra/README.md): exact deployment bindings and policies.
+- [Infrastructure](https://github.com/kraeinc/gogcli-proxied-awscdk/blob/main/infra/README.md): exact deployment bindings and policies.
 - [Safety profiles](safety-profiles.md): local restrictions in addition to proxy policy.
 - [Agent skills](agent-skills.md): generated command guidance.
 - [Command index](commands/): available command and flag reference.
@@ -44,5 +44,5 @@ transfer is outside this deployment's contract.
 
 This proxy fork builds on [openclaw/gogcli](https://github.com/openclaw/gogcli)
 and retains its module path and MIT license. Source and changes are in the
-[fork repository](https://github.com/Frunk-Foundation/gogcli-proxied-awscdk).
+[fork repository](https://github.com/kraeinc/gogcli-proxied-awscdk).
 It is not affiliated with Google.

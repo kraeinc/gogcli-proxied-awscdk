@@ -7,7 +7,7 @@ info:
     consumes this envelope internally. Requests without opt-in, ranged requests,
     metadata, and upstream errors keep the ordinary Google response contract.
 servers:
-  - url: https://host4.example.invalid/prd
+  - url: https://example.invalid/prd
 security:
   - sigv4: []
     usagePlanKey: []
