@@ -8,7 +8,7 @@ import subprocess
 import sys
 
 POLICY = json.loads((Path(__file__).resolve().parents[1] / ".privacy-policy.json").read_text())
-TOKENS = re.compile(rb"[A-Za-z0-9_.+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}|(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}|\b[0-9]{12,13}\b|\b[A-Za-z][A-Za-z0-9_.+-]*\b")
+TOKENS = re.compile(rb"/(?:home|Users)/[A-Za-z0-9._-]+|[A-Za-z0-9_.+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}|(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}|\b[0-9]{12,13}\b|\b[A-Za-z][A-Za-z0-9_.+-]*\b")
 
 
 def violations(path, content):
