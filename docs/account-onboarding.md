@@ -129,7 +129,9 @@ Build this repository with `make build`. Upstream Homebrew/Go binaries do not
 contain the proxy transport. `bin/gog --version` identifies this fork and build.
 Run `bin/gog config path` and set the operator-provided proxy URL, usage-plan
 key, AWS profile, and default account in its `config.json`. Keep this local
-configuration out of Git.
+configuration out of Git. Owner setup commands require `proxy_base_url` in
+that configuration or the `GOG_PROXY_BASE_URL` environment variable; an
+unconfigured endpoint returns a usage error.
 
 Both an authorized AWS session and usage-plan key are required. Obtain the key
 through the project operator's existing access procedure; do not configure local

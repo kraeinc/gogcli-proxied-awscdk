@@ -29,7 +29,7 @@ Managed account API requests, including Gmail history reads during watch process
 ## Deploy
 
 The source is this repository; the target is
-[`env/gogcli-prd/binding.json`](../env/gogcli-prd/binding.json). Product-owned access
+`env/gogcli-prd/binding.json` (local and ignored). Product-owned access
 and runtime permission boundaries are documented in [SECURITY.md](SECURITY.md).
 Initial security setup uses the account bootstrap administrator; routine application
 updates use `gogcli-live-deployment`. Inspection uses `gogcli-live-inspection`,
