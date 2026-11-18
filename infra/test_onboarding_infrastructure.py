@@ -172,17 +172,18 @@ class InfrastructureContractTests(unittest.TestCase):
     def test_migration_staging_preserves_urls_without_domain_or_workers(self):
         binding = dict(self.binding, endpoint_enabled=False, workers_enabled=False)
         app = App()
-        stack = GoogleProxyApiStack(app, 'Staging', stage_name=binding['stage'],
-            ssm_prefix=binding['ssm_prefix'], binding=binding,
-            env=Environment(account=binding['account_id'], region=binding['region']))
+        with patch('stacks.google_proxy_api_substack.python_asset', unbundled_asset), \
+                patch('stacks.onboarding_resources.python_asset', unbundled_asset):
+            stack = GoogleProxyApiStack(app, 'Staging', stage_name=binding['stage'],
+                ssm_prefix=binding['ssm_prefix'], binding=binding,
+                env=Environment(account=binding['account_id'], region=binding['region']))
         template = Template.from_stack(stack)
         template.resource_count_is('AWS::ApiGateway::DomainName', 0)
         template.resource_count_is('AWS::ApiGateway::BasePathMapping', 0)
         for resource in template.find_resources('AWS::Lambda::EventSourceMapping').values():
             self.assertFalse(resource['Properties']['Enabled'])
         for resource in template.find_resources('AWS::Lambda::Function').values():
-            self.assertEqual(binding['deployed_artifact']['bucket'], resource['Properties']['Code']['S3Bucket'])
-            self.assertEqual(binding['deployed_artifact']['key'], resource['Properties']['Code']['S3Key'])
+            self.assertNotIn('S3Bucket', resource['Properties']['Code'])
         parameters = template.to_json()['Parameters']
         self.assertTrue(parameters['ClientApiKeyValue']['NoEcho'])
 
