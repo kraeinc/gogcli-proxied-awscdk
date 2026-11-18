@@ -22,6 +22,12 @@ class PrivacyTests(unittest.TestCase):
             self.assertEqual(["personal or deployment identifier"], privacy.violations("README.md", b"https://nested.PRIVATE.EXAMPLE"))
             self.assertEqual([], privacy.violations("README.md", b"owner@example.com"))
 
+    def test_private_owner_label_does_not_match_namespace_prefix(self):
+        label = b"owner"
+        with patch.dict(privacy.POLICY, {"identifier_sha256": [hashlib.sha256(label).hexdigest()]}):
+            self.assertEqual(["personal or deployment identifier"], privacy.violations("operator.py", b'owner="owner"'))
+            self.assertEqual([], privacy.violations("README.md", b"https://github.com/ownerinc/project"))
+
     def test_hyphenated_credential_locator_is_rejected(self):
         locator = b"example-vault-service-api-key"
         with patch.dict(privacy.POLICY, {"identifier_sha256": [hashlib.sha256(locator).hexdigest()]}):
