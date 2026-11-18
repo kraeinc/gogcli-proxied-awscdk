@@ -1,6 +1,8 @@
 pre-commit:
   parallel: true
   commands:
+    privacy:
+      run: python3 scripts/check_privacy.py --staged
     secrets:
       run: make secrets-staged
     fmt-check:

@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+python3 scripts/check_privacy.py --staged
+make secrets-staged
+
 echo "🔍 Running fmt check..."
 make fmt-check 2>&1 || {
     echo "❌ Format check failed. Run 'make fmt' and re-commit."

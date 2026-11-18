@@ -168,7 +168,7 @@ secrets-full:
 		echo "gitleaks not found. Run 'make tools' or install gitleaks in PATH."; \
 		exit 2; \
 	fi; \
-	"$$GL" git --no-banner --redact .
+	"$$GL" git --no-banner --redact --log-opts="--all" .
 
 secrets-staged:
 	@GL="$(GITLEAKS)"; \
