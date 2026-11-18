@@ -1,6 +1,7 @@
 import contextlib
 import hashlib
 import io
+import os
 from pathlib import Path
 import subprocess
 import tempfile
@@ -21,6 +22,40 @@ class PrivacyTests(unittest.TestCase):
         with patch.dict(privacy.POLICY, {"identifier_sha256": [hashlib.sha256(b"private.example").hexdigest()]}):
             self.assertEqual(["personal or deployment identifier"], privacy.violations("README.md", b"https://nested.PRIVATE.EXAMPLE"))
             self.assertEqual([], privacy.violations("README.md", b"owner@example.com"))
+
+    def test_private_catalog_paths_and_metadata_are_rejected(self):
+        locator = b"aws/example/operator/catalog"
+        name = b"Private Operator"
+        with patch.dict(privacy.POLICY, {"identifier_sha256": [hashlib.sha256(v.lower()).hexdigest() for v in [locator, name]]}):
+            self.assertEqual(["personal or deployment identifier"], privacy.violations("operator.py", locator))
+            self.assertEqual(["personal or deployment identifier"], privacy.metadata_violations(b"tagger Private Operator <operator@example.com>"))
+            self.assertEqual([], privacy.metadata_violations(b"Public Operator <operator@example.com>"))
+
+    def test_history_scans_annotated_tagger_identity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            def git(*args):
+                return subprocess.check_output(["git", "-C", str(root), *args])
+            git("init", "-q")
+            git("config", "user.name", "Test")
+            git("config", "user.email", "test@example.com")
+            git("commit", "--allow-empty", "-qm", "safe")
+            environment = dict(os.environ, GIT_COMMITTER_NAME="Private Operator")
+            subprocess.run(["git", "-C", str(root), "tag", "-a", "v-test", "-m", "safe tag"], env=environment, check=True)
+            with patch.object(privacy, "git", git), patch.dict(privacy.POLICY, {"identifier_sha256": [hashlib.sha256(b"private operator").hexdigest()]}):
+                output = io.StringIO()
+                with contextlib.redirect_stderr(output):
+                    self.assertEqual(1, privacy.scan_history("--all"))
+                self.assertNotIn("Private Operator", output.getvalue())
+
+    def test_git_identity_override_is_rejected(self):
+        def git(*args):
+            return b"Private Operator <operator@example.com>" if args[0] == "var" else b""
+        with patch.object(privacy, "git", git), patch.dict(privacy.POLICY, {"identifier_sha256": [hashlib.sha256(b"private operator").hexdigest()]}):
+            output = io.StringIO()
+            with contextlib.redirect_stderr(output):
+                self.assertEqual(1, privacy.scan(True))
+            self.assertNotIn("Private Operator", output.getvalue())
 
     def test_private_owner_label_does_not_match_namespace_prefix(self):
         label = b"owner"

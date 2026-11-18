@@ -6,4 +6,6 @@ Install the native hook with `git config core.hooksPath .githooks`, or use the e
 
 Run `just privacy-staged` to check staged changes, or `just privacy-check` to check all reachable Git history. The privacy check reads staged Git blobs, so unstaged edits cannot hide staged private content. The secret-scan workflow checks the pull-request commit range and all reachable history on pushes and scheduled runs, including records added and later deleted.
 
+The hook also checks Git author and committer identity overrides. History scans include commit metadata and annotated tags.
+
 The privacy policy rejects known personal and deployment identifiers by SHA-256 digest without printing their values. Add only necessary code or documentation; private operational records belong outside tracked history.
