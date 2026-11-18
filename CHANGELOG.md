@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Privacy: keep deployment bindings and operational records local and ignored; block private identifiers and secrets in commits and CI. CLI proxy configuration must be explicit, and operator commands use the selected local binding instead of embedded deployment identities.
+
 - Breaking: remove the `prd` environment marker from IAM names and label workload roles internal — the dedicated account runs one product, so names carry only the product. Entry roles assumed from outside the account are now `gogcli-deployment`, `gogcli-inspection`, and `gogcli-operation`; execution roles and boundaries are `gogcli-internal-proxy`, `gogcli-internal-onboarding`, and `gogcli-internal-apigw-logs` (`…-boundary`); the Lambda functions and log groups become `gogcli-proxy` and `gogcli-onboarding`. Public URLs and the API stage are unchanged. Cutover requires: an administrator redeploy of `GogcliProductSecurity`, an application redeploy (role and function replacement recreates the event-source mappings, so re-discover `application_resources` and run a final administrator security update), updating identity-side profiles to the new entry-role ARNs, re-verifying connected accounts (runtime allow entries are keyed by the old operation-role ARN), and deleting the retained `gogcli-prd-*` roles, policies, and log groups.
 
 - Accounts: present a connection as **connected the moment credentials install**, and run the end-to-end proxy check in the background instead of blocking on it. The check waits one propagation window (`ONBOARDING_PROPAGATION_SECONDS`, default 20s) tied to a shorter proxy allowlist cache (`GOG_ALLOWLIST_CACHE_TTL_SECONDS`, default 15s, down from 60s), cutting the post-approval wait from ~65s. A failing check flips the account to needs-attention; it never un-connects a good install. Each completed check emits a `connection_completed` wide log event with total and per-phase timing.
@@ -11,8 +13,6 @@
 - Breaking: support multiple owner logins, each isolated to its own accounts. Tool access to an account is granted only to its owner login's own caller role, via the `binding.owners[]` (`sub` → `caller_role_arn`) map replacing the single `binding.client_role_arn`/`ONBOARDING_OWNER_CALLER_ARN`. A login without a configured caller is UI-only: it connects and manages accounts (verifier access only) but cannot pause/resume tool access. Disconnect now sweeps every configured owner caller. Run `scripts/configure_owner_login.py` (which records each member's Authentik `sub`) before deploying.
 
 - Accounts: let each owner mark one of their own accounts as primary (**Make primary** / `PUT /v1/accounts/{email}/primary`, surfaced as `setup.primaryEmail`). It is a per-person label and changes no proxy authorization or CLI default.
-
-- Move production into its dedicated Operator Live account with product-owned access, preserving existing public URLs, Google connections, and deployed runtime bytes.
 
 - Add product-owned deployment, inspection, and operation roles with separate workload permission boundaries for dedicated-account deployment.
 
