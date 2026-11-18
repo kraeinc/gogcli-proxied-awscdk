@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Privacy: keep deployment bindings and operational records local and ignored; block private identifiers and secrets in commits and CI. CLI proxy configuration must be explicit, and operator commands use the selected local binding instead of embedded deployment identities.
+
 - Accounts: expose public error details only for known authentication and workflow failures; unexpected provider errors return a generic failure.
 
 - Proxy: stream full Drive downloads and exports to the CLI through private S3 staging and five-minute signed links, preserving account and operation policy checks and avoiding the Lambda response-size limit. Staging is bounded to 256 MiB and the request deadline.
