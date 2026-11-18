@@ -21,10 +21,14 @@ class OperatorTests(unittest.TestCase):
         self.source = Path(self.temp.name)
         env = self.source / 'env/gogcli-prd'
         env.mkdir(parents=True)
-        self.binding = json.loads((ROOT / 'env/gogcli-prd/binding.json').read_text())
-        self.binding['google_application'] = {'project_id': 'gogcli-proxy', 'project_number': '1234567890123',
-            'name': 'gogcli-proxy', 'organization': 'host9.example.invalid'}
-        self.access = json.loads((ROOT / 'env/gogcli-prd/access.json').read_text())
+        self.binding = {'environment': 'gogcli-prd', 'deployment_profile': 'fixture-operation',
+            'account_id': '123456789012', 'region': 'us-east-1', 'ssm_prefix': '/fixture',
+            'public_domain_name': 'proxy.example.com', 'stage': 'prd',
+            'google_application': {'project_id': 'gogcli-proxy', 'name': 'Fixture application',
+                'organization': 'example.com'}}
+        self.access = {'GogcliGoogleProxyApi': {
+            'GoogleCallbackUrl': 'https://proxy.example.com/prd/onboarding/oauth/google/callback',
+            'OnboardingTable': 'fixture-onboarding'}}
         self.env = env
         self.write_target()
         self.callback = self.access['GogcliGoogleProxyApi']['GoogleCallbackUrl']
@@ -51,6 +55,19 @@ class OperatorTests(unittest.TestCase):
         with self.assertRaises(Exception):
             operator.configure(self.source, 'gogcli-prd', self.client_file, ['gmail'], 'testing', session_factory)
         session_factory.assert_not_called()
+
+    def test_application_binding_requires_configured_name_and_organization(self):
+        for field in ('name', 'organization'):
+            for value in (None, '', ' '):
+                with self.subTest(field=field, value=value):
+                    self.binding['google_application'][field] = value
+                    self.write_target()
+                    with self.assertRaises(ValueError):
+                        operator.load_target(self.source, 'gogcli-prd')
+            self.binding['google_application'][field] = 'configured.example'
+        self.write_target()
+        binding, _ = operator.load_target(self.source, 'gogcli-prd')
+        self.assertEqual('configured.example', binding['google_application']['organization'])
 
     def test_target_callback_must_match_binding(self):
         self.access['GogcliGoogleProxyApi']['GoogleCallbackUrl'] = 'https://wrong.example/callback'

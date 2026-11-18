@@ -5,6 +5,7 @@ Run with uv run --with requests --with boto3 python scripts/configure_owner_logi
 import json
 from pathlib import Path
 import subprocess
+from urllib.parse import urlsplit
 
 import boto3
 import requests
@@ -12,12 +13,19 @@ import requests
 ROOT = Path(__file__).resolve().parents[1]
 binding = json.loads((ROOT / 'env/gogcli-prd/binding.json').read_text())
 access = json.loads((ROOT / 'env/gogcli-prd/access.json').read_text())['GogcliGoogleProxyApi']
-base = 'https://host1.example.invalid/api/v3/'
+issuer = urlsplit(binding['oidc_issuer'])
+if issuer.scheme != 'https' or not issuer.hostname or issuer.username or issuer.password or issuer.query or issuer.fragment:
+    raise ValueError('The bound OIDC issuer must be an HTTPS URL without credentials, query, or fragment.')
+origin = f'{issuer.scheme}://{issuer.netloc}/'
+base = origin + 'api/v3/'
+api_credential = binding['owner_login']['api_credential']
+if not isinstance(api_credential, str) or not api_credential.strip():
+    raise ValueError('The owner-login API credential locator must be configured.')
 slug = 'gogcli-proxy-prd'
 credential_slug = 'project-gogcli-proxy-prd-owner-oidc'
 session = requests.Session()
 session.headers['Authorization'] = 'Bearer ' + subprocess.check_output(
-    ['keyring', 'credential', 'get-field', 'authentik-api-credential', 'token'], text=True).strip()
+    ['keyring', 'credential', 'get-field', api_credential, 'token'], text=True).strip()
 
 
 def call(method, endpoint, body=None):
@@ -45,7 +53,7 @@ schema = call('GET', 'schema/?format=json')
 for required in ('OAuth2ProviderRequest', 'ApplicationRequest', 'GroupRequest', 'PolicyBindingRequest'):
     if required not in schema['components']['schemas']:
         raise RuntimeError('Unsupported Authentik API schema')
-user = exact(objects('core/users/'), 'username', 'host7.example.invalid')
+user = exact(objects('core/users/'), 'username', binding['owner_login']['username'])
 groups = objects('core/groups/')
 group = next((item for item in groups if item['name'] == binding['owner_group']), None)
 if not group:
@@ -72,7 +80,7 @@ if not client_secret:
 metadata = subprocess.run(['keyring', 'credential', 'show', credential_slug], capture_output=True, text=True)
 if metadata.returncode:
     subprocess.run(['keyring', 'credential', 'create', '--slug', credential_slug, '--provider', 'authentik',
-        '--display-name', 'Gogcli Proxy PRD Owner Login', '--kind', 'oauth_client', '--owner', 'Operator', '--purpose', 'Gogcli Proxy PRD owner login',
+        '--display-name', 'Gogcli Proxy PRD Owner Login', '--kind', 'oauth_client', '--purpose', 'Gogcli Proxy PRD owner login',
         '--documentation', binding['oidc_issuer'], '--metadata-only'], check=True, capture_output=True)
 for field, value in [('client_id', binding['oidc_client_id']), ('client_secret', client_secret)]:
     subprocess.run(['keyring', 'credential', 'set-field', credential_slug, field, '--value-stdin'], input=value,
@@ -99,7 +107,7 @@ assert response.json()['issuer'] == binding['oidc_issuer']
 jwks = requests.get(response.json()['jwks_uri'], timeout=15)
 jwks.raise_for_status()
 assert any(key.get('kty') == 'RSA' for key in jwks.json()['keys'])
-record = {'service': 'https://host1.example.invalid/', 'stage': 'prd', 'application': slug,
+record = {'service': origin, 'stage': 'prd', 'application': slug,
     'provider_id': provider['pk'], 'owner_group': group['pk'], 'owner_username': user['username'],
     'client_id': binding['oidc_client_id'], 'client_type': 'confidential',
     'scopes': ['openid', 'profile', 'email'], 'issuer': binding['oidc_issuer'],

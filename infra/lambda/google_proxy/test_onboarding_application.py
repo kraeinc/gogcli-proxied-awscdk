@@ -28,6 +28,20 @@ class ApplicationContractTests(unittest.TestCase):
         self.assertNotIn('selected_project_id', snapshot['accounts'][0])
         self.assertNotIn('installed_project_id', snapshot['accounts'][0])
 
+    def test_application_organization_comes_from_required_configuration(self):
+        with patch.dict(os.environ, GOOGLE_APPLICATION_ORGANIZATION='configured.example'):
+            self.assertEqual('configured.example', self.service.setup('owner')['application']['organization'])
+        for value in ('', ' '):
+            with self.subTest(value=value), patch.dict(os.environ, GOOGLE_APPLICATION_ORGANIZATION=value):
+                with self.assertRaises(WorkflowError) as failed:
+                    self.service.setup('owner')
+                self.assertEqual('application_not_configured', failed.exception.code)
+        with patch.dict(os.environ):
+            os.environ.pop('GOOGLE_APPLICATION_ORGANIZATION', None)
+            with self.assertRaises(WorkflowError) as failed:
+                self.service.setup('owner')
+            self.assertEqual('application_not_configured', failed.exception.code)
+
     def test_installed_provenance_is_never_relabelled(self):
         account = self.store.get('ACCOUNT#account2@example.invalid')
         account.update(credential_revision='installed', connection_status='connected',

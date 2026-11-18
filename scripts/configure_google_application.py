@@ -30,10 +30,11 @@ def load_target(source, environment):
     binding = json.loads((env_dir / 'binding.json').read_text())
     access = json.loads((env_dir / 'access.json').read_text())['GogcliGoogleProxyApi']
     application = binding['google_application']
-    if (binding['environment'] != environment or application['project_id'] != PROJECT_ID
-            or str(application['project_number']) != '1234567890123'
-            or application['organization'] != 'host9.example.invalid'):
+    if binding['environment'] != environment or application['project_id'] != PROJECT_ID:
         raise ValueError('The binding must identify the canonical gogcli-proxy application.')
+    for key in ('name', 'organization'):
+        if not isinstance(application.get(key), str) or not application[key].strip():
+            raise ValueError('The application binding is incomplete.')
     for key in ('deployment_profile', 'account_id', 'region', 'ssm_prefix', 'public_domain_name', 'stage'):
         if not isinstance(binding[key], str) or not binding[key].strip():
             raise ValueError('The environment binding is incomplete.')

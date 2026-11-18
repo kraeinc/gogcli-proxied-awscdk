@@ -44,7 +44,7 @@ class LinkStore(MemoryStore):
 
 class ConnectionLinkTests(unittest.TestCase):
     def setUp(self):
-        self.env = patch.dict(os.environ, GOOGLE_PROJECT_ID='gogcli-proxy', GOOGLE_CALLBACK_URL='https://app.example/onboarding/oauth/google/callback')
+        self.env = patch.dict(os.environ, GOOGLE_PROJECT_ID='gogcli-proxy', GOOGLE_APPLICATION_ORGANIZATION='example.com', GOOGLE_CALLBACK_URL='https://app.example/onboarding/oauth/google/callback')
         self.env.start(); self.addCleanup(self.env.stop)
         self.store, self.google = LinkStore(), Mock()
         self.service = OnboardingService(self.store, self.google, 'https://app.example/onboarding/oauth/google/callback')

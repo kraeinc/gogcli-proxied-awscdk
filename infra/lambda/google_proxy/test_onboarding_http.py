@@ -76,7 +76,6 @@ class BoundaryTests(unittest.TestCase):
                     self.assertEqual(200, result['statusCode'])
                     self.assertEqual('text/html', result['headers']['Content-Type'])
                     self.assertIn(title, result['body'])
-                    self.assertIn('account5@example.invalid', result['body'])
                     self.assertEqual('no-store', result['headers']['Cache-Control'])
             auth.assert_not_called()
             service.assert_not_called()
@@ -141,7 +140,7 @@ class ClientImportTests(unittest.TestCase):
             'auth_provider_x509_cert_url': 'https://www.googleapis.com/oauth2/v1/certs',
             'client_secret': 'synthetic-secret', 'redirect_uris': [self.service.callback_url]}}
         env = patch.dict('os.environ', {'ONBOARDING_BASE_URL': 'https://app.example/onboarding/',
-                                      'GOOGLE_PROJECT_ID': 'gogcli-proxy'})
+                                      'GOOGLE_PROJECT_ID': 'gogcli-proxy', 'GOOGLE_APPLICATION_ORGANIZATION': 'example.com'})
         env.start()
         self.addCleanup(env.stop)
 
