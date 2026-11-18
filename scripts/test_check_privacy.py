@@ -22,6 +22,12 @@ class PrivacyTests(unittest.TestCase):
             self.assertEqual(["personal or deployment identifier"], privacy.violations("README.md", b"https://nested.PRIVATE.EXAMPLE"))
             self.assertEqual([], privacy.violations("README.md", b"owner@example.com"))
 
+    def test_private_home_prefix_respects_username_boundary(self):
+        prefix = b"/home/private-user"
+        with patch.dict(privacy.POLICY, {"identifier_sha256": [hashlib.sha256(prefix).hexdigest()]}):
+            self.assertEqual(["personal or deployment identifier"], privacy.violations("README.md", prefix + b"/project"))
+            self.assertEqual([], privacy.violations("README.md", prefix + b"-other/project"))
+
     def test_staged_scan_reads_index_and_ignores_deleted_files(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
