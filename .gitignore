@@ -76,3 +76,12 @@ infra/venv/
 IMPLEMENTATION_PLAN.md
 SKILL.md
 .tmuxinator.yml
+
+env/
+planning/
+.env.*
+!.env.example
+*client_secret*.json
+*credentials*.json
+*.pem
+*.key

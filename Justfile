@@ -15,3 +15,11 @@ configure-google-application client_json confirmed_apis publishing_status:
 
 operator-test:
     AWS_EC2_METADATA_DISABLED=true uv run --python 3.11 --with boto3 --with-requirements infra/lambda/google_proxy/requirements.txt python -m unittest discover -s scripts -p 'test_configure_google_application.py'
+
+privacy-staged:
+    python3 scripts/check_privacy.py --staged
+    make secrets-staged
+
+privacy-check:
+    python3 scripts/check_privacy.py --history
+    make secrets-full
