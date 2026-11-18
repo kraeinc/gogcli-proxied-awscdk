@@ -196,6 +196,7 @@ func TestManagedAutomaticAccountSelectionUsesRemoteInventory(t *testing.T) {
 }
 
 func TestManagedOwnerCommandsDoNotChangeAccess(t *testing.T) {
+	t.Setenv("GOG_PROXY_BASE_URL", "https://proxy.example.com/stage/")
 	for _, args := range [][]string{{"auth", "add", "owner@example.com"}, {"auth", "setup"}, {"auth", "manage"}, {"auth", "remove", "owner@example.com"}} {
 		result := executeWithTestRuntime(t, append([]string{"--home", t.TempDir(), "--json"}, args...), &app.Runtime{Auth: app.AuthOperations{OpenSecretsStore: func() (secrets.Store, error) {
 			t.Error("owner command touched local tokens")
@@ -211,7 +212,7 @@ func TestManagedOwnerCommandsDoNotChangeAccess(t *testing.T) {
 		if err := json.Unmarshal([]byte(result.stdout), &report); err != nil {
 			t.Fatal(err)
 		}
-		if report.URL != canonicalSetupURL || report.Changed {
+		if report.URL != "https://proxy.example.com/stage/onboarding/" || report.Changed {
 			t.Fatalf("owner command misrepresented result: %s", result.stdout)
 		}
 	}
@@ -281,5 +282,59 @@ func TestManagedDoctorDoesNotReportDisconnectedAccountHealthy(t *testing.T) {
 	}
 	if report.Status != doctorWarn {
 		t.Fatalf("unconnected account reported healthy: %s", result.stdout)
+	}
+}
+
+func TestManagedOwnerSetupRequiresConfiguredEndpoint(t *testing.T) {
+	for _, test := range []struct {
+		name        string
+		configured  string
+		environment string
+		wantURL     string
+		wantError   string
+	}{
+		{name: "missing", wantError: "set proxy_base_url or GOG_PROXY_BASE_URL"},
+		{name: "environment", environment: "https://proxy.example.com/stage/", wantURL: "https://proxy.example.com/stage/onboarding/"},
+		{name: "configuration", configured: "https://configured.example.com/proxy", environment: "https://environment.example.com", wantURL: "https://configured.example.com/proxy/onboarding/"},
+		{name: "invalid", environment: "https://user:password@proxy.example.com", wantError: "invalid proxy base URL"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Setenv("GOG_PROXY_BASE_URL", test.environment)
+			home := t.TempDir()
+			if test.configured != "" {
+				if err := os.Mkdir(filepath.Join(home, "config"), 0o700); err != nil {
+					t.Fatal(err)
+				}
+				content, err := json.Marshal(map[string]string{"proxy_base_url": test.configured})
+				if err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(filepath.Join(home, "config", "config.json"), content, 0o600); err != nil {
+					t.Fatal(err)
+				}
+			}
+			result := executeWithTestRuntime(t, []string{"--home", home, "--json", "auth", "setup"}, nil)
+			if test.wantError != "" {
+				if result.err == nil || !strings.Contains(result.err.Error(), test.wantError) {
+					t.Fatalf("error = %v, want %q", result.err, test.wantError)
+				}
+				if result.stdout != "" {
+					t.Fatalf("unexpected setup output: %s", result.stdout)
+				}
+				return
+			}
+			if result.err != nil {
+				t.Fatal(result.err)
+			}
+			var report struct {
+				URL string `json:"setup_url"`
+			}
+			if err := json.Unmarshal([]byte(result.stdout), &report); err != nil {
+				t.Fatal(err)
+			}
+			if report.URL != test.wantURL {
+				t.Fatalf("setup URL = %q, want %q", report.URL, test.wantURL)
+			}
+		})
 	}
 }

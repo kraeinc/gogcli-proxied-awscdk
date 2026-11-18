@@ -12,10 +12,7 @@ import (
 	"github.com/openclaw/gogcli/internal/outfmt"
 )
 
-const (
-	managedDefaultTimeout = 15 * time.Second
-	canonicalSetupURL     = "https://host4.example.invalid/prd/onboarding/"
-)
+const managedDefaultTimeout = 15 * time.Second
 
 type ManagedAuthListCmd struct {
 	Check   bool          `name:"check" help:"Check Gmail and Drive reads as this caller; recorded verification is separate"`
@@ -137,14 +134,14 @@ func writeManagedSetup(ctx context.Context, email, instruction string) error {
 	if base == "" {
 		base = strings.TrimSpace(os.Getenv("GOG_PROXY_BASE_URL"))
 	}
-	setupURL := canonicalSetupURL
-	if base != "" {
-		parsed, parseErr := url.Parse(base)
-		if parseErr != nil || parsed.Host == "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" || (parsed.Scheme != "https" && parsed.Scheme != "http") {
-			return usage("invalid proxy base URL for owner setup")
-		}
-		setupURL = strings.TrimRight(base, "/") + "/onboarding/"
+	if base == "" {
+		return usage("set proxy_base_url or GOG_PROXY_BASE_URL for owner setup")
 	}
+	parsed, parseErr := url.Parse(base)
+	if parseErr != nil || parsed.Host == "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" || (parsed.Scheme != "https" && parsed.Scheme != "http") {
+		return usage("invalid proxy base URL for owner setup")
+	}
+	setupURL := strings.TrimRight(base, "/") + "/onboarding/"
 	if outfmt.IsJSON(ctx) {
 		return outfmt.WriteJSON(ctx, stdoutWriter(ctx), map[string]any{"setup_url": setupURL, "email": strings.TrimSpace(email), "instruction": instruction, "changed": false})
 	}
