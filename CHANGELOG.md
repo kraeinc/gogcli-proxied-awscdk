@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Owner commands require a configured `proxy_base_url` or `GOG_PROXY_BASE_URL`; remove the deployment-specific fallback address.
+
 - Privacy: keep deployment bindings and operational records local and ignored; block private identifiers and secrets in commits and CI. CLI proxy configuration must be explicit, and operator commands use the selected local binding instead of embedded deployment identities.
 
 - Accounts: expose public error details only for known authentication and workflow failures; unexpected provider errors return a generic failure.
